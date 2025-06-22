@@ -1,249 +1,338 @@
-import React, { useState } from 'react';
-import { MagnifyingGlassIcon, PlusIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Page,
+  Layout,
+  Card,
+  ResourceList,
+  ResourceItem,
+  TextStyle,
+  Stack,
+  Thumbnail,
+  Badge,
+  Filters,
+  ChoiceList,
+  Button,
+  Modal,
+  FormLayout,
+  TextField,
+  TextContainer,
+  ProgressBar,
+  Banner,
+  EmptyState
+} from '@shopify/polaris';
+import { SearchMinor, FilterMinor } from '@shopify/polaris-icons';
+import toast from 'react-hot-toast';
 
-const Products = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all');
+export default function Products() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [queryValue, setQueryValue] = useState('');
+  const [statusFilter, setStatusFilter] = useState([]);
+  const [modalActive, setModalActive] = useState(false);
+  const [optimizingProduct, setOptimizingProduct] = useState(null);
+  const [optimizationProgress, setOptimizationProgress] = useState(0);
 
-  // Données de test
-  const products = [
-    {
-      id: 1,
-      name: 'T-shirt Premium Bio',
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop',
-      seoScore: 85,
-      status: 'published',
-      price: '29.99€',
-      category: 'Vêtements'
-    },
-    {
-      id: 2,
-      name: 'Sneakers Urbaines',
-      image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=100&h=100&fit=crop',
-      seoScore: 45,
-      status: 'published',
-      price: '89.99€',
-      category: 'Chaussures'
-    },
-    {
-      id: 3,
-      name: 'Sac à dos Voyage',
-      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop',
-      seoScore: 78,
-      status: 'draft',
-      price: '59.99€',
-      category: 'Accessoires'
-    },
-    {
-      id: 4,
-      name: 'Montre Connectée',
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop',
-      seoScore: 32,
-      status: 'published',
-      price: '199.99€',
-      category: 'Électronique'
-    },
-    {
-      id: 5,
-      name: 'Casque Audio Premium',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop',
-      seoScore: 67,
-      status: 'published',
-      price: '149.99€',
-      category: 'Électronique'
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      // Simuler le chargement des produits
+      setTimeout(() => {
+        setProducts([
+          {
+            id: '1',
+            title: 'T-shirt Premium Coton Bio',
+            image: 'https://via.placeholder.com/50',
+            price: '29.99',
+            seoScore: 45,
+            status: 'not_optimized',
+            description: 'T-shirt haute qualité...'
+          },
+          {
+            id: '2',
+            title: 'Jean Slim Fit Stretch',
+            image: 'https://via.placeholder.com/50',
+            price: '79.99',
+            seoScore: 82,
+            status: 'optimized',
+            description: 'Jean moderne avec coupe ajustée...'
+          },
+          {
+            id: '3',
+            title: 'Sneakers Sport Performance',
+            image: 'https://via.placeholder.com/50',
+            price: '99.99',
+            seoScore: 67,
+            status: 'in_progress',
+            description: 'Chaussures de sport légères...'
+          }
+        ]);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des produits');
+      setLoading(false);
     }
+  };
+
+  const handleOptimizeProduct = useCallback((product) => {
+    setOptimizingProduct(product);
+    setModalActive(true);
+    setOptimizationProgress(0);
+
+    // Simuler l'optimisation
+    const interval = setInterval(() => {
+      setOptimizationProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setModalActive(false);
+            toast.success(`${product.title} optimisé avec succès !`);
+            // Mettre à jour le produit
+            setProducts(prevProducts =>
+              prevProducts.map(p =>
+                p.id === product.id
+                  ? { ...p, status: 'optimized', seoScore: 95 }
+                  : p
+              )
+            );
+          }, 500);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+  }, []);
+
+  const handleQueryValueRemove = useCallback(() => setQueryValue(''), []);
+  const handleStatusFilterRemove = useCallback(() => setStatusFilter([]), []);
+  const handleClearAll = useCallback(() => {
+    handleQueryValueRemove();
+    handleStatusFilterRemove();
+  }, [handleQueryValueRemove, handleStatusFilterRemove]);
+
+  const filters = [
+    {
+      key: 'status',
+      label: 'Statut',
+      filter: (
+        <ChoiceList
+          title="Statut"
+          titleHidden
+          choices={[
+            { label: 'Optimisé', value: 'optimized' },
+            { label: 'Non optimisé', value: 'not_optimized' },
+            { label: 'En cours', value: 'in_progress' },
+          ]}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          allowMultiple
+        />
+      ),
+      shortcut: true,
+    },
   ];
 
-  const getSeoScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600 bg-green-100';
-    if (score >= 60) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
-  };
+  const appliedFilters = !isEmpty(statusFilter)
+    ? [{
+        key: 'status',
+        label: disambiguateLabel('status', statusFilter),
+        onRemove: handleStatusFilterRemove,
+      }]
+    : [];
+
+  const filterControl = (
+    <Filters
+      queryValue={queryValue}
+      filters={filters}
+      appliedFilters={appliedFilters}
+      onQueryChange={setQueryValue}
+      onQueryClear={handleQueryValueRemove}
+      onClearAll={handleClearAll}
+    />
+  );
+
+  const promotedBulkActions = [
+    {
+      content: 'Optimiser la sélection',
+      onAction: () => {
+        toast.success(`Optimisation de ${selectedItems.length} produits lancée`);
+      },
+    },
+  ];
 
   const getStatusBadge = (status) => {
-    if (status === 'published') {
-      return <span className="badge badge-success">Publié</span>;
+    switch (status) {
+      case 'optimized':
+        return <Badge status="success">Optimisé</Badge>;
+      case 'in_progress':
+        return <Badge status="warning">En cours</Badge>;
+      default:
+        return <Badge status="critical">Non optimisé</Badge>;
     }
-    return <span className="badge badge-warning">Brouillon</span>;
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'all' || 
-      (filter === 'low-seo' && product.seoScore < 60) ||
-      (filter === 'high-seo' && product.seoScore >= 80);
-    return matchesSearch && matchesFilter;
-  });
+  const getSeoScoreColor = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
+    return 'critical';
+  };
+
+  const renderItem = (item) => {
+    const { id, title, image, price, seoScore, status, description } = item;
+
+    return (
+      <ResourceItem
+        id={id}
+        media={<Thumbnail source={image} alt={title} />}
+        accessibilityLabel={`View details for ${title}`}
+      >
+        <Stack>
+          <Stack.Item fill>
+            <h3>
+              <TextStyle variation="strong">{title}</TextStyle>
+            </h3>
+            <div style={{ marginTop: '4px' }}>
+              <TextStyle variation="subdued">{description}</TextStyle>
+            </div>
+          </Stack.Item>
+          <Stack.Item>
+            <Stack vertical spacing="tight">
+              <TextStyle variation="strong">{price} €</TextStyle>
+              {getStatusBadge(status)}
+            </Stack>
+          </Stack.Item>
+          <Stack.Item>
+            <Stack vertical spacing="tight" alignment="center">
+              <TextStyle>Score SEO</TextStyle>
+              <Badge status={getSeoScoreColor(seoScore)}>{seoScore}/100</Badge>
+            </Stack>
+          </Stack.Item>
+          <Stack.Item>
+            <Button
+              primary={status !== 'optimized'}
+              onClick={() => handleOptimizeProduct(item)}
+              disabled={status === 'in_progress'}
+            >
+              {status === 'optimized' ? 'Ré-optimiser' : 'Optimiser'}
+            </Button>
+          </Stack.Item>
+        </Stack>
+      </ResourceItem>
+    );
+  };
 
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-              <p className="text-gray-600">Gérez et optimisez le SEO de vos produits</p>
-            </div>
-            <div className="flex space-x-3">
-              <button className="btn-primary">
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Nouveau produit
-              </button>
-              <button className="btn-secondary">
-                <SparklesIcon className="h-5 w-5 mr-2" />
-                Optimiser sélection
-              </button>
-            </div>
-          </div>
-        </div>
+    <Page
+      title="Produits"
+      subtitle="Gérez et optimisez vos produits"
+      primaryAction={{
+        content: 'Importer des produits',
+        onAction: () => toast.info('Import des produits depuis Shopify...'),
+      }}
+      secondaryActions={[
+        {
+          content: 'Optimisation en lot',
+          onAction: () => window.location.href = '/bulk-optimization',
+        },
+      ]}
+    >
+      <Layout>
+        <Layout.Section>
+          <Banner
+            title="Conseil d'optimisation"
+            status="info"
+            onDismiss={() => {}}
+          >
+            <p>
+              Les produits avec un score SEO inférieur à 60 devraient être optimisés en priorité 
+              pour améliorer votre visibilité sur les moteurs de recherche.
+            </p>
+          </Banner>
+        </Layout.Section>
 
-        {/* Filtres et recherche */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Barre de recherche */}
-            <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un produit..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="form-input pl-10"
+        <Layout.Section>
+          <Card>
+            {products.length > 0 ? (
+              <ResourceList
+                resourceName={{ singular: 'produit', plural: 'produits' }}
+                items={products}
+                renderItem={renderItem}
+                selectedItems={selectedItems}
+                onSelectionChange={setSelectedItems}
+                promotedBulkActions={promotedBulkActions}
+                filterControl={filterControl}
+                loading={loading}
               />
-            </div>
+            ) : (
+              <EmptyState
+                heading="Aucun produit trouvé"
+                action={{
+                  content: 'Importer des produits',
+                  onAction: () => toast.info('Import en cours...'),
+                }}
+                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              >
+                <p>Importez vos produits depuis Shopify pour commencer l'optimisation SEO.</p>
+              </EmptyState>
+            )}
+          </Card>
+        </Layout.Section>
+      </Layout>
 
-            {/* Filtres */}
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="form-select"
-            >
-              <option value="all">Tous les produits</option>
-              <option value="low-seo">Score SEO faible (&lt; 60)</option>
-              <option value="high-seo">Score SEO élevé (≥ 80)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Stats rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-gray-900">{products.length}</div>
-            <div className="text-sm text-gray-600">Produits totaux</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-green-600">
-              {products.filter(p => p.seoScore >= 80).length}
-            </div>
-            <div className="text-sm text-gray-600">Score SEO excellent</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-yellow-600">
-              {products.filter(p => p.seoScore >= 60 && p.seoScore < 80).length}
-            </div>
-            <div className="text-sm text-gray-600">Score SEO moyen</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-red-600">
-              {products.filter(p => p.seoScore < 60).length}
-            </div>
-            <div className="text-sm text-gray-600">À optimiser</div>
-          </div>
-        </div>
-
-        {/* Liste des produits */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Liste des produits ({filteredProducts.length})
-            </h2>
-          </div>
-          <div className="card-body p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Produit
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Catégorie
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prix
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Score SEO
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <img
-                            className="h-12 w-12 rounded-lg object-cover"
-                            src={product.image}
-                            alt={product.name}
-                          />
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {product.name}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.category}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.price}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getSeoScoreColor(product.seoScore)}`}>
-                          {product.seoScore}/100
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(product.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            Modifier
-                          </button>
-                          <button className="text-green-600 hover:text-green-900">
-                            Optimiser
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500">
-              <p className="text-lg font-medium">Aucun produit trouvé</p>
-              <p>Essayez de modifier vos critères de recherche</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      <Modal
+        open={modalActive}
+        onClose={() => setModalActive(false)}
+        title="Optimisation en cours"
+        primaryAction={{
+          content: 'Fermer',
+          onAction: () => setModalActive(false),
+          disabled: optimizationProgress < 100,
+        }}
+      >
+        <Modal.Section>
+          <Stack vertical>
+            <TextContainer>
+              <p>
+                Optimisation de <strong>{optimizingProduct?.title}</strong> avec l'intelligence artificielle...
+              </p>
+            </TextContainer>
+            <ProgressBar progress={optimizationProgress} />
+            <TextStyle variation="subdued">
+              {optimizationProgress < 30 && "Analyse du contenu actuel..."}
+              {optimizationProgress >= 30 && optimizationProgress < 60 && "Génération du titre optimisé..."}
+              {optimizationProgress >= 60 && optimizationProgress < 90 && "Amélioration de la description..."}
+              {optimizationProgress >= 90 && "Finalisation de l'optimisation..."}
+            </TextStyle>
+          </Stack>
+        </Modal.Section>
+      </Modal>
+    </Page>
   );
-};
+}
 
-export default Products; 
+function isEmpty(value) {
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return value === '' || value == null;
+}
+
+function disambiguateLabel(key, value) {
+  switch (key) {
+    case 'status':
+      return value.map(val => {
+        switch (val) {
+          case 'optimized': return 'Optimisé';
+          case 'not_optimized': return 'Non optimisé';
+          case 'in_progress': return 'En cours';
+          default: return val;
+        }
+      }).join(', ');
+    default:
+      return value;
+  }
+} 

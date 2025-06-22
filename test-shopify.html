@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Installation Shopify</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; }
+        .box { background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        button { background: #008060; color: white; padding: 15px 30px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        .url { background: #e0e0e0; padding: 10px; margin: 10px 0; word-break: break-all; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Test Installation ContentAIBoost</h1>
+    
+    <div class="box">
+        <h2>Méthode 1 : Installation directe</h2>
+        <p>Cliquez sur le bouton pour installer l'app :</p>
+        <button onclick="window.location.href='https://contentaiboost.onrender.com/api/auth/shopify?shop=contentboostai.myshopify.com'">
+            Installer ContentAIBoost
+        </button>
+    </div>
+    
+    <div class="box">
+        <h2>Méthode 2 : URL manuelle</h2>
+        <p>Copiez cette URL dans votre navigateur :</p>
+        <div class="url">https://contentaiboost.onrender.com/api/auth/shopify?shop=contentboostai.myshopify.com</div>
+    </div>
+    
+    <div class="box">
+        <h2>Méthode 3 : Installation avec redirection auto</h2>
+        <p>Cette URL redirige automatiquement :</p>
+        <div class="url">https://contentaiboost.onrender.com/?shop=contentboostai.myshopify.com</div>
+    </div>
+    
+    <div class="box">
+        <h2>Debug : URL OAuth générée</h2>
+        <p>L'app génère cette URL OAuth :</p>
+        <div class="url" style="font-size: 12px;">
+            https://contentboostai.myshopify.com/admin/oauth/authorize?client_id=e64a4504c28e6dfa3bd96ecb7c6e55a8&scope=read_products,write_products,read_themes,write_themes&redirect_uri=https%3A%2F%2Fcontentaiboost.onrender.com%2Fapi%2Fauth%2Fshopify%2Fcallback&state=RANDOM
+        </div>
+    </div>
+    
+    <div class="box">
+        <h2>Vérifications dans Shopify Partners :</h2>
+        <ul>
+            <li>App URL : https://contentaiboost.onrender.com</li>
+            <li>Redirect URL : https://contentaiboost.onrender.com/api/auth/shopify/callback</li>
+            <li>API Key : e64a4504c28e6dfa3bd96ecb7c6e55a8</li>
+        </ul>
+    </div>
+</body>
+</html> 

@@ -1,202 +1,239 @@
 import React, { useState } from 'react';
-import { KeyIcon, SparklesIcon, CogIcon } from '@heroicons/react/24/outline';
+import {
+  Page,
+  Layout,
+  Card,
+  FormLayout,
+  TextField,
+  Select,
+  Checkbox,
+  Button,
+  Banner,
+  Stack,
+  Badge,
+  Icon,
+  TextContainer,
+  Heading
+} from '@shopify/polaris';
+import {
+  CircleTickMajor,
+  CircleAlertMajor
+} from '@shopify/polaris-icons';
+import toast from 'react-hot-toast';
 
-const Settings = () => {
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [claudeKey, setClaudeKey] = useState('');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [saved, setSaved] = useState(false);
+export default function Settings() {
+  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    openaiKey: '',
+    claudeKey: '',
+    geminiKey: '',
+    defaultAI: 'openai',
+    autoOptimize: false,
+    optimizeOnImport: false,
+    language: 'fr',
+    tone: 'professional'
+  });
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const [apiStatus, setApiStatus] = useState({
+    openai: false,
+    claude: false,
+    gemini: false
+  });
+
+  const handleChange = (field) => (value) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Paramètres</h1>
-          <p className="text-gray-600">Configurez vos clés API et préférences d'optimisation</p>
-        </div>
+  const testApiKey = async (provider) => {
+    setLoading(true);
+    try {
+      // Simuler le test de l'API
+      setTimeout(() => {
+        setApiStatus(prev => ({ ...prev, [provider]: true }));
+        toast.success(`${provider.toUpperCase()} API connectée avec succès !`);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      toast.error(`Erreur de connexion ${provider}`);
+      setLoading(false);
+    }
+  };
 
-        <div className="space-y-8">
-          {/* Clés API */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex items-center">
-                <KeyIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-semibold text-gray-900">Clés API Intelligence Artificielle</h2>
-              </div>
-            </div>
-            <div className="card-body space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  OpenAI API Key (ChatGPT)
-                </label>
-                <input
-                  type="password"
-                  value={openaiKey}
-                  onChange={(e) => setOpenaiKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="form-input"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Obtenez votre clé sur <a href="https://platform.openai.com" className="text-blue-600">platform.openai.com</a>
-                </p>
-              </div>
+  const saveSettings = async () => {
+    setLoading(true);
+    try {
+      // Simuler la sauvegarde
+      setTimeout(() => {
+        toast.success('Paramètres sauvegardés avec succès !');
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde');
+      setLoading(false);
+    }
+  };
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Anthropic API Key (Claude)
-                </label>
-                <input
-                  type="password"
-                  value={claudeKey}
-                  onChange={(e) => setClaudeKey(e.target.value)}
-                  placeholder="sk-ant-..."
-                  className="form-input"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Obtenez votre clé sur <a href="https://console.anthropic.com" className="text-blue-600">console.anthropic.com</a>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Google AI API Key (Gemini)
-                </label>
-                <input
-                  type="password"
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                  placeholder="AI..."
-                  className="form-input"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Obtenez votre clé sur <a href="https://makersuite.google.com" className="text-blue-600">makersuite.google.com</a>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Préférences d'optimisation */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex items-center">
-                <SparklesIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-semibold text-gray-900">Préférences d'optimisation</h2>
-              </div>
-            </div>
-            <div className="card-body space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  IA préférée
-                </label>
-                <select className="form-select">
-                  <option value="chatgpt">ChatGPT (OpenAI)</option>
-                  <option value="claude">Claude (Anthropic)</option>
-                  <option value="gemini">Gemini (Google)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Langue d'optimisation
-                </label>
-                <select className="form-select">
-                  <option value="fr">Français</option>
-                  <option value="en">Anglais</option>
-                  <option value="es">Espagnol</option>
-                  <option value="de">Allemand</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Options par défaut
-                </label>
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
-                    <span className="ml-2 text-sm text-gray-700">Optimiser automatiquement les titres</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
-                    <span className="ml-2 text-sm text-gray-700">Améliorer les descriptions</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600" defaultChecked />
-                    <span className="ml-2 text-sm text-gray-700">Générer des mots-clés SEO</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600" />
-                    <span className="ml-2 text-sm text-gray-700">Optimiser les métadonnées</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Informations de la boutique */}
-          <div className="card">
-            <div className="card-header">
-              <div className="flex items-center">
-                <CogIcon className="h-5 w-5 text-gray-500 mr-2" />
-                <h2 className="text-lg font-semibold text-gray-900">Informations de la boutique</h2>
-              </div>
-            </div>
-            <div className="card-body">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nom de la boutique
-                  </label>
-                  <div className="text-sm text-gray-900">contentboostai.myshopify.com</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Plan d'abonnement
-                  </label>
-                  <div className="text-sm text-gray-900">
-                    <span className="badge badge-info">Gratuit</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Optimisations restantes
-                  </label>
-                  <div className="text-sm text-gray-900">47 / 50</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Statut de connexion
-                  </label>
-                  <div className="flex items-center">
-                    <div className="h-2 w-2 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-900">Connecté</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            <button className="btn-secondary">
-              Réinitialiser
-            </button>
-            <button 
-              className="btn-primary" 
-              onClick={handleSave}
-            >
-              {saved ? '✓ Sauvegardé' : 'Sauvegarder'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+  const AIProviderCard = ({ provider, title, description }) => (
+    <Card sectioned>
+      <Stack vertical spacing="loose">
+        <Stack distribution="equalSpacing" alignment="center">
+          <Heading>{title}</Heading>
+          {apiStatus[provider] ? (
+            <Badge status="success" icon={CircleTickMajor}>Connecté</Badge>
+          ) : (
+            <Badge status="critical" icon={CircleAlertMajor}>Non configuré</Badge>
+          )}
+        </Stack>
+        
+        <TextContainer>
+          <p>{description}</p>
+        </TextContainer>
+        
+        <TextField
+          label="Clé API"
+          value={settings[`${provider}Key`]}
+          onChange={handleChange(`${provider}Key`)}
+          type="password"
+          autoComplete="off"
+          helpText={`Entrez votre clé API ${title}`}
+        />
+        
+        <Button
+          onClick={() => testApiKey(provider)}
+          loading={loading}
+          disabled={!settings[`${provider}Key`]}
+        >
+          Tester la connexion
+        </Button>
+      </Stack>
+    </Card>
   );
-};
 
-export default Settings; 
+  return (
+    <Page
+      title="Paramètres"
+      subtitle="Configurez ContentAIBoost selon vos besoins"
+      primaryAction={{
+        content: 'Sauvegarder',
+        onAction: saveSettings,
+        loading: loading
+      }}
+    >
+      <Layout>
+        <Layout.Section>
+          <Banner
+            title="Configuration requise"
+            status="warning"
+          >
+            <p>
+              Vous devez configurer au moins une API d'IA pour utiliser les fonctionnalités d'optimisation automatique.
+            </p>
+          </Banner>
+        </Layout.Section>
+
+        {/* Configuration des APIs */}
+        <Layout.Section>
+          <TextContainer>
+            <Heading>Configuration des APIs d'Intelligence Artificielle</Heading>
+          </TextContainer>
+          
+          <Stack vertical spacing="loose">
+            <AIProviderCard
+              provider="openai"
+              title="OpenAI (GPT-4)"
+              description="Utilisez GPT-4 pour des optimisations de haute qualité avec une compréhension contextuelle avancée."
+            />
+            
+            <AIProviderCard
+              provider="claude"
+              title="Anthropic Claude"
+              description="Claude offre des réponses nuancées et créatives, idéal pour du contenu engageant."
+            />
+            
+            <AIProviderCard
+              provider="gemini"
+              title="Google Gemini"
+              description="Gemini Pro pour des optimisations rapides et efficaces avec l'IA de Google."
+            />
+          </Stack>
+        </Layout.Section>
+
+        {/* Préférences d'optimisation */}
+        <Layout.Section>
+          <Card title="Préférences d'optimisation" sectioned>
+            <FormLayout>
+              <Select
+                label="IA par défaut"
+                options={[
+                  { label: 'OpenAI GPT-4', value: 'openai' },
+                  { label: 'Anthropic Claude', value: 'claude' },
+                  { label: 'Google Gemini', value: 'gemini' }
+                ]}
+                value={settings.defaultAI}
+                onChange={handleChange('defaultAI')}
+                helpText="Choisissez l'IA à utiliser par défaut pour les optimisations"
+              />
+              
+              <Select
+                label="Langue des optimisations"
+                options={[
+                  { label: 'Français', value: 'fr' },
+                  { label: 'English', value: 'en' },
+                  { label: 'Español', value: 'es' },
+                  { label: 'Deutsch', value: 'de' }
+                ]}
+                value={settings.language}
+                onChange={handleChange('language')}
+              />
+              
+              <Select
+                label="Ton du contenu"
+                options={[
+                  { label: 'Professionnel', value: 'professional' },
+                  { label: 'Amical', value: 'friendly' },
+                  { label: 'Luxueux', value: 'luxury' },
+                  { label: 'Technique', value: 'technical' },
+                  { label: 'Décontracté', value: 'casual' }
+                ]}
+                value={settings.tone}
+                onChange={handleChange('tone')}
+                helpText="Le ton à adopter pour les descriptions générées"
+              />
+            </FormLayout>
+          </Card>
+        </Layout.Section>
+
+        {/* Options automatiques */}
+        <Layout.Section secondary>
+          <Card title="Automatisation" sectioned>
+            <Stack vertical spacing="loose">
+              <Checkbox
+                label="Optimisation automatique"
+                checked={settings.autoOptimize}
+                onChange={handleChange('autoOptimize')}
+                helpText="Active l'optimisation automatique en arrière-plan"
+              />
+              
+              <Checkbox
+                label="Optimiser lors de l'import"
+                checked={settings.optimizeOnImport}
+                onChange={handleChange('optimizeOnImport')}
+                helpText="Optimise automatiquement les nouveaux produits importés"
+              />
+            </Stack>
+          </Card>
+
+          <Card title="Informations" sectioned>
+            <Stack vertical spacing="tight">
+              <TextContainer>
+                <p><strong>Version :</strong> 1.0.0</p>
+                <p><strong>Dernière mise à jour :</strong> 22 juin 2025</p>
+                <p><strong>Support :</strong> support@contentaiboost.com</p>
+              </TextContainer>
+            </Stack>
+          </Card>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
+}
