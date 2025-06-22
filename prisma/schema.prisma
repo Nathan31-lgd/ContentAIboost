@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id                 Int      @id @default(autoincrement())
+  shopifyDomain      String   @unique
+  shopifyAccessToken String
+  email              String?  @unique
+  plan               String   @default("free") // e.g., "free", "premium"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  apiKeys       ApiKey[]
+  optimizations Optimization[]
+}
+
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  provider  String // "openai", "anthropic", "google"
+  key       String // This will be encrypted
+  createdAt DateTime @default(now())
+
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId Int
+
+  @@unique([shopId, provider])
+}
+
+model Optimization {
+  id                Int      @id @default(autoincrement())
+  resourceId        String // Shopify GID, e.g., "gid://shopify/Product/12345"
+  resourceType      String // "Product" or "Collection"
+  status            String // "PENDING", "RUNNING", "COMPLETED", "FAILED"
+  seoScoreBefore    Int?
+  seoScoreAfter     Int?
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId Int
+}
