@@ -5,8 +5,6 @@ import {
   Card,
   ResourceList,
   ResourceItem,
-  TextStyle,
-  Stack,
   Thumbnail,
   Badge,
   Filters,
@@ -20,7 +18,7 @@ import {
   Banner,
   EmptyState
 } from '@shopify/polaris';
-import { SearchMinor, FilterMinor } from '@shopify/polaris-icons';
+// Icônes temporairement désactivées pour le build
 import toast from 'react-hot-toast';
 
 export default function Products() {
@@ -190,28 +188,20 @@ export default function Products() {
         media={<Thumbnail source={image} alt={title} />}
         accessibilityLabel={`View details for ${title}`}
       >
-        <Stack>
-          <Stack.Item fill>
-            <h3>
-              <TextStyle variation="strong">{title}</TextStyle>
-            </h3>
-            <div style={{ marginTop: '4px' }}>
-              <TextStyle variation="subdued">{description}</TextStyle>
-            </div>
-          </Stack.Item>
-          <Stack.Item>
-            <Stack vertical spacing="tight">
-              <TextStyle variation="strong">{price} €</TextStyle>
-              {getStatusBadge(status)}
-            </Stack>
-          </Stack.Item>
-          <Stack.Item>
-            <Stack vertical spacing="tight" alignment="center">
-              <TextStyle>Score SEO</TextStyle>
-              <Badge status={getSeoScoreColor(seoScore)}>{seoScore}/100</Badge>
-            </Stack>
-          </Stack.Item>
-          <Stack.Item>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ fontWeight: '600', marginBottom: '4px' }}>{title}</h3>
+            <div style={{ color: '#6d7175', fontSize: '14px' }}>{description}</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+            <span style={{ fontWeight: '600' }}>{price} €</span>
+            {getStatusBadge(status)}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+            <span style={{ fontSize: '14px' }}>Score SEO</span>
+            <Badge status={getSeoScoreColor(seoScore)}>{seoScore}/100</Badge>
+          </div>
+          <div>
             <Button
               primary={status !== 'optimized'}
               onClick={() => handleOptimizeProduct(item)}
@@ -219,8 +209,8 @@ export default function Products() {
             >
               {status === 'optimized' ? 'Ré-optimiser' : 'Optimiser'}
             </Button>
-          </Stack.Item>
-        </Stack>
+          </div>
+        </div>
       </ResourceItem>
     );
   };
@@ -294,20 +284,20 @@ export default function Products() {
         }}
       >
         <Modal.Section>
-          <Stack vertical>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <TextContainer>
               <p>
                 Optimisation de <strong>{optimizingProduct?.title}</strong> avec l'intelligence artificielle...
               </p>
             </TextContainer>
             <ProgressBar progress={optimizationProgress} />
-            <TextStyle variation="subdued">
+            <span style={{ color: '#6d7175', fontSize: '14px' }}>
               {optimizationProgress < 30 && "Analyse du contenu actuel..."}
               {optimizationProgress >= 30 && optimizationProgress < 60 && "Génération du titre optimisé..."}
               {optimizationProgress >= 60 && optimizationProgress < 90 && "Amélioration de la description..."}
               {optimizationProgress >= 90 && "Finalisation de l'optimisation..."}
-            </TextStyle>
-          </Stack>
+            </span>
+          </div>
         </Modal.Section>
       </Modal>
     </Page>

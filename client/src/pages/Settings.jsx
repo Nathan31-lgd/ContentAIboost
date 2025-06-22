@@ -9,16 +9,11 @@ import {
   Checkbox,
   Button,
   Banner,
-  Stack,
   Badge,
   Icon,
-  TextContainer,
-  Heading
+  TextContainer
 } from '@shopify/polaris';
-import {
-  CircleTickMajor,
-  CircleAlertMajor
-} from '@shopify/polaris-icons';
+// Icônes temporairement désactivées pour le build
 import toast from 'react-hot-toast';
 
 export default function Settings() {
@@ -75,15 +70,15 @@ export default function Settings() {
 
   const AIProviderCard = ({ provider, title, description }) => (
     <Card sectioned>
-      <Stack vertical spacing="loose">
-        <Stack distribution="equalSpacing" alignment="center">
-          <Heading>{title}</Heading>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '600' }}>{title}</h2>
           {apiStatus[provider] ? (
-            <Badge status="success" icon={CircleTickMajor}>Connecté</Badge>
+            <Badge status="success">✓ Connecté</Badge>
           ) : (
-            <Badge status="critical" icon={CircleAlertMajor}>Non configuré</Badge>
+            <Badge status="critical">✗ Non configuré</Badge>
           )}
-        </Stack>
+        </div>
         
         <TextContainer>
           <p>{description}</p>
@@ -105,7 +100,7 @@ export default function Settings() {
         >
           Tester la connexion
         </Button>
-      </Stack>
+      </div>
     </Card>
   );
 
@@ -134,10 +129,10 @@ export default function Settings() {
         {/* Configuration des APIs */}
         <Layout.Section>
           <TextContainer>
-            <Heading>Configuration des APIs d'Intelligence Artificielle</Heading>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>Configuration des APIs d'Intelligence Artificielle</h2>
           </TextContainer>
           
-          <Stack vertical spacing="loose">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <AIProviderCard
               provider="openai"
               title="OpenAI (GPT-4)"
@@ -155,7 +150,7 @@ export default function Settings() {
               title="Google Gemini"
               description="Gemini Pro pour des optimisations rapides et efficaces avec l'IA de Google."
             />
-          </Stack>
+          </div>
         </Layout.Section>
 
         {/* Préférences d'optimisation */}
@@ -206,7 +201,7 @@ export default function Settings() {
         {/* Options automatiques */}
         <Layout.Section secondary>
           <Card title="Automatisation" sectioned>
-            <Stack vertical spacing="loose">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <Checkbox
                 label="Optimisation automatique"
                 checked={settings.autoOptimize}
@@ -220,17 +215,17 @@ export default function Settings() {
                 onChange={handleChange('optimizeOnImport')}
                 helpText="Optimise automatiquement les nouveaux produits importés"
               />
-            </Stack>
+            </div>
           </Card>
 
           <Card title="Informations" sectioned>
-            <Stack vertical spacing="tight">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <TextContainer>
                 <p><strong>Version :</strong> 1.0.0</p>
                 <p><strong>Dernière mise à jour :</strong> 22 juin 2025</p>
                 <p><strong>Support :</strong> support@contentaiboost.com</p>
               </TextContainer>
-            </Stack>
+            </div>
           </Card>
         </Layout.Section>
       </Layout>

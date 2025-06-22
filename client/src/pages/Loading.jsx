@@ -1,29 +1,23 @@
 import React from 'react';
-import { Page, Layout, Card, Spinner, Text, Stack } from '@shopify/polaris';
+import { Page, Layout, Card, Spinner } from '@shopify/polaris';
 
 const Loading = () => {
   return (
     <Page>
       <Layout>
         <Layout.Section>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh'
-          }}>
-            <Card sectioned>
-              <Stack vertical alignment="center" spacing="loose">
-                <Spinner size="large" />
-                <Text variant="headingMd" as="h2">
-                  ContentAIBoost
-                </Text>
-                <Text variant="bodyMd" as="p" color="subdued">
-                  Chargement de votre application...
-                </Text>
-              </Stack>
-            </Card>
-          </div>
+          <Card sectioned>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              padding: '60px 0'
+            }}>
+              <Spinner size="large" />
+              <p style={{ marginTop: '20px', color: '#6d7175' }}>Chargement en cours...</p>
+            </div>
+          </Card>
         </Layout.Section>
       </Layout>
     </Page>

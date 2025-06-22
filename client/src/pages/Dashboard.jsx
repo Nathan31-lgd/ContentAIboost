@@ -4,10 +4,6 @@ import {
   Page, 
   Layout, 
   TextContainer, 
-  Heading,
-  DisplayText,
-  TextStyle,
-  Stack,
   Badge,
   Button,
   ProgressBar,
@@ -15,12 +11,7 @@ import {
   EmptyState,
   Banner
 } from '@shopify/polaris';
-import {
-  ProductsMajor,
-  CollectionsMajor,
-  AnalyticsMajor,
-  CircleTickMajor
-} from '@shopify/polaris-icons';
+// Icônes temporairement désactivées pour le build
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -64,18 +55,18 @@ export default function Dashboard() {
 
   const StatCard = ({ title, value, subtitle, icon, color = 'base' }) => (
     <Card sectioned>
-      <Stack vertical spacing="tight">
-        <Stack distribution="equalSpacing" alignment="center">
-          <TextStyle variation="subdued">{title}</TextStyle>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: '#6d7175', fontSize: '14px' }}>{title}</span>
           <div style={{ color: color === 'success' ? '#108043' : '#202223' }}>
             {icon}
           </div>
-        </Stack>
-        <DisplayText size="large">{value}</DisplayText>
+        </div>
+        <div style={{ fontSize: '32px', fontWeight: '600', color: '#202223' }}>{value}</div>
         {subtitle && (
-          <TextStyle variation="subdued">{subtitle}</TextStyle>
+          <span style={{ color: '#6d7175', fontSize: '14px' }}>{subtitle}</span>
         )}
-      </Stack>
+      </div>
     </Card>
   );
 
@@ -115,33 +106,33 @@ export default function Dashboard() {
 
         {/* Statistiques principales */}
         <Layout.Section>
-          <Stack distribution="fillEvenly" spacing="loose">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
             <StatCard
               title="Produits totaux"
               value={stats.totalProducts}
               subtitle={`${stats.optimizedProducts} optimisés`}
-              icon={<ProductsMajor />}
+              icon={<span>📦</span>}
             />
             <StatCard
               title="Score SEO moyen"
               value={`${stats.averageSeoScore}%`}
               subtitle="En progression"
-              icon={<AnalyticsMajor />}
+              icon={<span>📊</span>}
               color="success"
             />
             <StatCard
               title="Collections"
               value={stats.totalCollections}
               subtitle="À optimiser"
-              icon={<CollectionsMajor />}
+              icon={<span>📚</span>}
             />
             <StatCard
               title="Taux d'optimisation"
               value={`${Math.round((stats.optimizedProducts / stats.totalProducts) * 100)}%`}
               subtitle="Objectif : 100%"
-              icon={<CircleTickMajor />}
+              icon={<span>✅</span>}
             />
-          </Stack>
+          </div>
         </Layout.Section>
 
         {/* Produits récents */}
@@ -171,7 +162,7 @@ export default function Dashboard() {
         {/* Actions rapides */}
         <Layout.Section secondary>
           <Card title="Actions rapides" sectioned>
-            <Stack vertical spacing="loose">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <Button fullWidth onClick={() => navigate('/products')}>
                 📝 Optimiser des produits
               </Button>
@@ -184,19 +175,19 @@ export default function Dashboard() {
               <Button fullWidth primary onClick={() => navigate('/settings')}>
                 ⚙️ Configurer l'IA
               </Button>
-            </Stack>
+            </div>
           </Card>
 
           <Card title="Conseils SEO" sectioned>
-            <Stack vertical spacing="tight">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <TextContainer>
-                <Heading element="h3">💡 Astuce du jour</Heading>
+                <h3>💡 Astuce du jour</h3>
                 <p>
                   Utilisez des mots-clés pertinents dans vos titres de produits 
                   pour améliorer votre visibilité sur les moteurs de recherche.
                 </p>
               </TextContainer>
-            </Stack>
+            </div>
           </Card>
         </Layout.Section>
       </Layout>
