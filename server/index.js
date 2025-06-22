@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 
 // Configuration de base
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__dirname);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -56,6 +56,22 @@ app.get('/api/health', (req, res) => {
     console.error('❌ Erreur health check:', error);
     res.status(500).json({ error: 'Health check failed', details: error.message });
   }
+});
+
+// Route de test pour vérifier les routes
+app.get('/api/test', (req, res) => {
+  console.log('✅ Route de test appelée');
+  res.json({
+    message: 'Routes fonctionnelles',
+    routes_disponibles: [
+      '/api/health',
+      '/api/test', 
+      '/api/auth/shopify',
+      '/api/auth/shopify/callback',
+      '/'
+    ],
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Routes d'authentification Shopify
