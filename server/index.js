@@ -171,7 +171,14 @@ app.use(express.static(clientPath));
 app.get('*', (req, res) => {
   const { shop, hmac } = req.query;
   
-  // Si on a les paramètres Shopify, servir l'app React
+  // Si on a un shop mais pas de HMAC, c'est une tentative d'installation
+  // On redirige DIRECTEMENT vers l'OAuth sans afficher de page
+  if (shop && shop.includes('.myshopify.com') && !hmac) {
+    console.log(`[AUTO-INSTALL] Redirection automatique vers OAuth pour ${shop}`);
+    return res.redirect(`/api/auth/shopify?shop=${shop}`);
+  }
+  
+  // Si on a les paramètres Shopify complets, servir l'app
   if (shop && hmac && verifyShopifyHmac(req.query)) {
     const indexPath = path.join(clientPath, 'index.html');
     
@@ -315,12 +322,12 @@ app.get('*', (req, res) => {
       }
     });
   } else {
-    // Page d'accueil / installation
+    // Page d'accueil simple
     res.send(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>ContentAIBoost - Installation</title>
+        <title>ContentAIBoost</title>
         <meta charset="utf-8">
         <style>
           body {
@@ -342,44 +349,28 @@ app.get('*', (req, res) => {
           }
           h1 { color: #202223; margin-bottom: 10px; }
           p { color: #6d7175; margin-bottom: 30px; }
-          .install-btn {
-            display: inline-block;
-            background: #008060;
-            color: white;
-            padding: 16px 32px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 18px;
-            font-weight: 600;
-          }
-          .install-btn:hover { background: #006b4f; }
-          .status {
-            background: #e3f2e1;
-            color: #108043;
-            padding: 8px 16px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 20px;
+          .url-box {
+            background: #f6f6f7;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
           }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="status">✓ Serveur actif</div>
           <h1>ContentAIBoost</h1>
-          <p>Application d'optimisation SEO avec Intelligence Artificielle pour Shopify</p>
+          <p>Application d'optimisation SEO pour Shopify</p>
           
-          ${shop ? `
-            <p style="color: #202223; font-weight: 600;">Boutique détectée : ${shop}</p>
-            <a href="/api/auth/shopify?shop=${shop}" class="install-btn">
-              Installer l'application
-            </a>
-          ` : `
-            <p>Pour installer l'application, utilisez cette URL avec votre boutique :</p>
-            <code style="background: #f6f6f7; padding: 10px; display: block; margin: 20px 0;">
-              ${process.env.SHOPIFY_APP_URL}/?shop=VOTRE-BOUTIQUE.myshopify.com
-            </code>
-          `}
+          <p><strong>Pour installer :</strong></p>
+          <p>Ajoutez <code>?shop=VOTRE-BOUTIQUE.myshopify.com</code> à l'URL</p>
+          
+          <div class="url-box">
+            ${process.env.SHOPIFY_APP_URL}/?shop=contentboostai.myshopify.com
+          </div>
         </div>
       </body>
       </html>
