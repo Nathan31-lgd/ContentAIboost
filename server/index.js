@@ -104,16 +104,14 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   const { shop, hmac, host } = req.query;
   
-  if (shop && hmac) {
-    // Si on a les paramètres Shopify, servir l'app
-    if (process.env.NODE_ENV === 'production') {
-      res.sendFile(path.join(__dirname, '../dist/client/index.html'));
-    } else {
-      // En développement, rediriger vers Vite
-      res.redirect(`http://localhost:5173?shop=${shop}&host=${host}`);
-    }
+  // En production, toujours servir l'app React
+  if (process.env.NODE_ENV === 'production') {
+    res.sendFile(path.join(__dirname, '../dist/client/index.html'));
+  } else if (shop && hmac) {
+    // En développement avec paramètres Shopify, rediriger vers Vite
+    res.redirect(`http://localhost:5173?shop=${shop}&host=${host}`);
   } else {
-    // Sinon, afficher une page d'accueil
+    // En développement sans paramètres, afficher page d'accueil
     res.send(`
       <html>
         <head>
@@ -155,7 +153,7 @@ app.use('*', (req, res) => {
 });
 
 // Démarrage du serveur
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Serveur ContentAIBoost démarré sur le port ${PORT}`);
   logger.info(`📊 Mode: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🔗 URL: http://localhost:${PORT}`);
