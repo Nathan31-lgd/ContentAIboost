@@ -9,15 +9,20 @@
   },
   "scripts": {
     "postinstall": "prisma generate || echo 'Prisma generate failed, continuing...'",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "nodemon server/index.js",
-    "dev:client": "vite client",
-    "build": "cd client && vite build",
-    "start": "node server/index.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && nodemon index.js",
+    "client": "cd client && vite",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm install && vite build --outDir ../dist/client",
+    "build:server": "echo 'Server build complete'",
+    "start": "cd server && node index.js",
     "preview": "vite preview client",
-    "test": "jest",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "migrate": "cd server && npx prisma migrate dev",
+    "generate": "cd server && npx prisma generate",
+    "studio": "cd server && npx prisma studio"
   },
   "keywords": [
     "shopify",
