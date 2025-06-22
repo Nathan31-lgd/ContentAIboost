@@ -1,51 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import des routes (avec gestion d'erreur)
-let authRoutes, productRoutes, collectionRoutes, aiRoutes, userRoutes, optimizationRoutes;
-let shopifyAuth, authMiddleware, errorHandler, initializeShopify, logger;
-
-try {
-  // Import conditionnel des modules
-  const authModule = await import('./routes/auth.js');
-  authRoutes = authModule.default;
-  
-  const shopifyAuthModule = await import('./middleware/shopifyAuth.js');
-  shopifyAuth = shopifyAuthModule.shopifyAuth;
-  
-  const authMiddlewareModule = await import('./middleware/auth.js');
-  authMiddleware = authMiddlewareModule.authMiddleware;
-  
-  const errorHandlerModule = await import('./middleware/errorHandler.js');
-  errorHandler = errorHandlerModule.errorHandler;
-  
-  const shopifyModule = await import('./config/shopify.js');
-  initializeShopify = shopifyModule.initializeShopify;
-  
-  const loggerModule = await import('./utils/logger.js');
-  logger = loggerModule.logger;
-  
-  console.log('✅ Tous les modules importés avec succès');
-} catch (error) {
-  console.error('❌ Erreur import modules:', error.message);
-  // Créer des fallbacks
-  logger = {
-    info: console.log,
-    error: console.error
-  };
-  errorHandler = (err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
-  };
-}
-
-// Configuration
+// Configuration de base
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -54,172 +13,192 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuration pour les proxies (nécessaire pour localtunnel)
+console.log('🚀 Démarrage du serveur ContentAIBoost...');
+console.log('📊 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔗 PORT:', PORT);
+
+// Configuration pour les proxies
 app.set('trust proxy', true);
 
-// Initialisation des services (avec gestion d'erreur)
-try {
-  if (initializeShopify) {
-    initializeShopify();
-    console.log('✅ Shopify initialisé');
-  }
-} catch (error) {
-  console.error('❌ Erreur Shopify:', error.message);
-}
-
-// Middlewares de sécurité
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'", "https://cdn.shopify.com"],
-      connectSrc: ["'self'", "https://api.shopify.com", "https://api.openai.com", "https://api.anthropic.com", "https://generativelanguage.googleapis.com"]
-    }
-  }
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limite par IP
-  message: {
-    error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-  }
-});
-app.use('/api/', limiter);
-
 // Middlewares de base
-app.use(compression());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [process.env.SHOPIFY_APP_URL] 
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging des requêtes
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  if (logger) {
-    logger.info(`${req.method} ${req.path}`);
-  }
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-// Routes API (avec gestion d'erreur)
-if (authRoutes) {
-  app.use('/api/auth', authRoutes);
-  console.log('✅ Routes auth chargées');
-}
-
-// Route de santé (TOUJOURS disponible)
+// Route de santé (priorité absolue)
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+  console.log('✅ Route /api/health appelée');
+  try {
+    const healthData = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      port: PORT,
+      shopify_configured: !!(process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET),
+      database_configured: !!process.env.DATABASE_URL
+    };
+    console.log('✅ Health check réussi:', healthData);
+    res.json(healthData);
+  } catch (error) {
+    console.error('❌ Erreur health check:', error);
+    res.status(500).json({ error: 'Health check failed', details: error.message });
+  }
 });
 
-// Route racine pour l'app Shopify
+// Route racine simplifiée
 app.get('/', (req, res) => {
-  const { shop, hmac, host } = req.query;
-  
-  // En production, toujours servir l'app React
-  if (process.env.NODE_ENV === 'production') {
-    try {
-      res.sendFile(path.join(__dirname, '../dist/client/index.html'));
-    } catch (error) {
-      console.error('❌ Erreur fichier HTML:', error.message);
-      res.send(`
-        <html>
-          <head>
-            <title>ContentAIBoost</title>
-            <style>
-              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-              h1 { color: #333; }
-              p { color: #666; }
-            </style>
-          </head>
-          <body>
-            <h1>ContentAIBoost</h1>
-            <p>Application Shopify pour l'optimisation SEO</p>
-            <p>Installez cette app depuis votre admin Shopify</p>
-            <p><small>Mode: ${process.env.NODE_ENV || 'development'}</small></p>
-          </body>
-        </html>
-      `);
-    }
-  } else {
-    // En développement
-    res.send(`
+  console.log('✅ Route / appelée');
+  try {
+    const { shop, hmac, host } = req.query;
+    console.log('📋 Paramètres reçus:', { shop, hmac: !!hmac, host });
+    
+    const html = `
+      <!DOCTYPE html>
       <html>
         <head>
           <title>ContentAIBoost</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
           <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #333; }
-            p { color: #666; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              text-align: center; 
+              padding: 50px; 
+              background: #f8fafc;
+              color: #334155;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: white;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            h1 { color: #1e293b; margin-bottom: 20px; }
+            .status { 
+              background: #dcfce7; 
+              color: #166534; 
+              padding: 12px; 
+              border-radius: 8px; 
+              margin: 20px 0; 
+            }
+            .info { 
+              background: #f1f5f9; 
+              padding: 15px; 
+              border-radius: 8px; 
+              margin: 10px 0; 
+              text-align: left; 
+            }
           </style>
         </head>
         <body>
-          <h1>ContentAIBoost</h1>
-          <p>Application Shopify pour l'optimisation SEO</p>
-          <p>Installez cette app depuis votre admin Shopify</p>
-          <p><small>Mode: ${process.env.NODE_ENV || 'development'}</small></p>
+          <div class="container">
+            <h1>🚀 ContentAIBoost</h1>
+            <div class="status">✅ Serveur opérationnel</div>
+            <p>Application Shopify pour l'optimisation SEO avec IA</p>
+            
+            <div class="info">
+              <strong>Informations système :</strong><br>
+              • Mode: ${process.env.NODE_ENV || 'development'}<br>
+              • Port: ${PORT}<br>
+              • Timestamp: ${new Date().toISOString()}<br>
+              • Shopify configuré: ${!!(process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET) ? '✅' : '❌'}<br>
+              • Base de données: ${!!process.env.DATABASE_URL ? '✅' : '❌'}
+            </div>
+            
+            ${shop ? `
+              <div class="info">
+                <strong>Paramètres Shopify détectés :</strong><br>
+                • Boutique: ${shop}<br>
+                • Host: ${host || 'Non fourni'}<br>
+                • HMAC: ${hmac ? 'Présent' : 'Absent'}
+              </div>
+            ` : ''}
+            
+            <p><small>Pour installer cette app, rendez-vous dans votre admin Shopify</small></p>
+          </div>
         </body>
       </html>
-    `);
+    `;
+    
+    res.send(html);
+    console.log('✅ Page d\'accueil servie avec succès');
+  } catch (error) {
+    console.error('❌ Erreur route /:', error);
+    res.status(500).send(`<h1>Erreur serveur</h1><p>${error.message}</p>`);
   }
 });
 
 // Servir les fichiers statiques en production
 if (process.env.NODE_ENV === 'production') {
   try {
-    app.use(express.static(path.join(__dirname, '../dist/client')));
+    const staticPath = path.join(__dirname, '../dist/client');
+    console.log('📁 Chemin fichiers statiques:', staticPath);
+    app.use(express.static(staticPath));
     console.log('✅ Fichiers statiques configurés');
   } catch (error) {
-    console.error('❌ Erreur fichiers statiques:', error.message);
+    console.error('❌ Erreur fichiers statiques:', error);
   }
 }
 
-// Middleware de gestion d'erreurs
-if (errorHandler) {
-  app.use(errorHandler);
-}
-
-// Route catch-all
+// Route catch-all pour debug
 app.use('*', (req, res) => {
+  console.log(`❓ Route non trouvée: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
     error: 'Route non trouvée',
-    path: req.originalUrl 
+    method: req.method,
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Gestion d'erreurs globale
+app.use((err, req, res, next) => {
+  console.error('💥 Erreur globale:', err);
+  res.status(500).json({
+    error: 'Erreur serveur interne',
+    message: err.message,
+    timestamp: new Date().toISOString()
   });
 });
 
 // Démarrage du serveur
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur ContentAIBoost démarré sur le port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Serveur ContentAIBoost démarré avec succès`);
   console.log(`📊 Mode: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 URL: http://localhost:${PORT}`);
-  if (logger) {
-    logger.info(`🚀 Serveur ContentAIBoost démarré sur le port ${PORT}`);
-  }
+  console.log(`🌐 URL publique: ${process.env.SHOPIFY_APP_URL || 'Non configurée'}`);
+  console.log(`🔑 Shopify API Key: ${process.env.SHOPIFY_API_KEY ? 'Configurée' : 'Manquante'}`);
+  console.log(`🗄️ Base de données: ${process.env.DATABASE_URL ? 'Configurée' : 'Manquante'}`);
+});
+
+// Gestion des erreurs de serveur
+server.on('error', (error) => {
+  console.error('💥 Erreur serveur:', error);
 });
 
 // Gestion des erreurs non capturées
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  // Ne pas quitter en production
+  console.error('💥 Uncaught Exception:', error);
+  // Ne pas quitter en production pour debug
   if (process.env.NODE_ENV !== 'production') {
     process.exit(1);
   }
