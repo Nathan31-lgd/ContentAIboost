@@ -5,6 +5,18 @@ import { useNotificationStore } from '../store/notificationStore';
 // Configuration de base
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Fonction pour obtenir les paramètres Shopify depuis l'URL
+const getShopifyParams = () => {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    shop: params.get('shop'),
+    host: params.get('host'),
+    embedded: params.get('embedded'),
+    hmac: params.get('hmac'),
+    timestamp: params.get('timestamp'),
+  };
+};
+
 // Créer une instance axios avec configuration de base
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,29 +28,56 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Intercepteur pour ajouter le token d'authentification
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// Intercepteur pour ajouter automatiquement les paramètres Shopify
+apiClient.interceptors.request.use((config) => {
+  const shopifyParams = getShopifyParams();
+  
+  // Ajouter les paramètres Shopify à toutes les requêtes
+  if (!config.params) {
+    config.params = {};
+  }
+  
+  // Ajouter les paramètres Shopify s'ils existent
+  Object.entries(shopifyParams).forEach(([key, value]) => {
+    if (value && !config.params[key]) {
+      config.params[key] = value;
     }
-    return config;
+  });
+  
+  console.log('API Request:', {
+    url: config.url,
+    method: config.method,
+    params: config.params,
+    shopifyParams,
+  });
+  
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Intercepteur de réponse pour gérer les erreurs
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('API Response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data,
+    });
+    return response.data;
   },
   (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Intercepteur pour gérer les erreurs de réponse
-apiClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data,
+    });
+    
     if (error.response?.status === 401) {
-      // Token expiré ou invalide
-      useAuthStore.getState().clearToken();
-      window.location.href = '/auth';
+      console.warn('Unauthorized request - missing or invalid Shopify parameters');
     }
+    
     return Promise.reject(error);
   }
 );
