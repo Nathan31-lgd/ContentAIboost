@@ -4,9 +4,6 @@
 # Rôles de ce processus (frontend + backend dans un seul processus)
 roles = ["frontend", "backend"]
 
-# Port pour le serveur (Render utilise le port 10000)
-port = 10000
-
 # Configuration OAuth
 auth_callback_path = "/api/auth/callback"
 
@@ -17,5 +14,5 @@ webhooks_path = "/api/webhooks"
 # Commande de build (utilise votre script existant)
 build = "./build.sh"
 
-# Commande de développement (démarre votre serveur)
-dev = "npm start" 
+# Commande de développement (démarre votre serveur en mode dev)
+dev = "npm run dev" 

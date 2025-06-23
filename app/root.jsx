@@ -1,13 +1,11 @@
 /**
- * Route racine pour Shopify/Remix
- * Point d'entrée pour l'interface utilisateur
+ * Route racine pour Shopify
+ * Point d'entrée simple pour l'interface utilisateur
  */
 
 export default function App() {
-  // Cette route sert de point d'entrée
-  // L'interface utilisateur réelle est servie par notre client React existant
   return (
-    <html>
+    <html lang="fr">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -17,6 +15,7 @@ export default function App() {
         <div id="app">
           <h1>ContentAIboost</h1>
           <p>App d'optimisation SEO pour Shopify</p>
+          <p>Interface principale servie par React/Express</p>
         </div>
       </body>
     </html>

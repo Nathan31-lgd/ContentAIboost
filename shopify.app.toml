@@ -25,5 +25,5 @@ embedded = false
 automatically_update_urls_on_dev = true
 dev_store_url = "https://contentboostai.myshopify.com"
 
-# Spécifier où se trouvent les fichiers web
+# Spécifier où se trouvent les fichiers web (racine du projet)
 web_directories = ["."] 

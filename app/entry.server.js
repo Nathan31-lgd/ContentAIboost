@@ -4,4 +4,4 @@
  */
 
 // Import du serveur Express existant
-import '../server/index.js'; 
+export { default } from '../server/index.js'; 
