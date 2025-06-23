@@ -1,0 +1,21 @@
+# Configuration web pour Shopify
+# Ce fichier identifie le répertoire web à Shopify CLI
+
+# Rôles de ce processus (frontend + backend dans un seul processus)
+roles = ["frontend", "backend"]
+
+# Port pour le serveur (Render utilise le port 10000)
+port = 10000
+
+# Configuration OAuth
+auth_callback_path = "/api/auth/callback"
+
+# Configuration des webhooks
+webhooks_path = "/api/webhooks"
+
+[commands]
+# Commande de build (utilise votre script existant)
+build = "./build.sh"
+
+# Commande de développement (démarre votre serveur)
+dev = "npm start" 

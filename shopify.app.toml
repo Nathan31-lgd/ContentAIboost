@@ -1,0 +1,29 @@
+# Configuration principale de l'app Shopify
+# Plus d'infos : https://shopify.dev/docs/apps/build/cli-for-apps/app-configuration
+
+name = "ContentAIboost"
+client_id = "e64a4504c28e6dfa3bd96ecb7c6e55a8"
+application_url = "https://contentaiboost.onrender.com"
+embedded = true
+
+[access_scopes]
+# Accès nécessaire pour l'optimisation SEO
+scopes = "read_products,write_products,read_content,write_content,read_themes,write_themes"
+
+[auth]
+redirect_urls = [
+  "https://contentaiboost.onrender.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-04"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "https://contentboostai.myshopify.com"
+
+# Spécifier où se trouvent les fichiers web
+web_directories = ["."] 
