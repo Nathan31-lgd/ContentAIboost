@@ -1,11 +1,10 @@
 import express from 'express';
 import { logger } from '../utils/logger.js';
-import shopifyService from '../services/shopifyService.js';
-import prisma from '../config/prisma.js';
+import shopifySimpleService from '../services/shopifySimpleService.js';
 
 const router = express.Router();
 
-// Données de test pour les produits
+// Données de test pour les produits (fallback)
 const mockProducts = [
   {
     id: '1',
@@ -63,6 +62,7 @@ const mockProducts = [
 router.post('/sync', async (req, res) => {
   try {
     const { shop } = req.query;
+    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
@@ -70,11 +70,27 @@ router.post('/sync', async (req, res) => {
 
     logger.info(`Synchronisation demandée pour ${shop}`);
     
-    // Pour l'instant, retourner un succès avec les données de test
+    // Si nous avons un token d'accès, essayer de récupérer les vrais produits
+    if (accessToken) {
+      try {
+        const result = await shopifySimpleService.getProducts(shop, accessToken);
+        return res.json({
+          success: true,
+          message: `${result.total} produits récupérés depuis Shopify`,
+          count: result.total,
+          source: 'shopify'
+        });
+      } catch (shopifyError) {
+        logger.error('Erreur Shopify, utilisation des données de test:', shopifyError);
+      }
+    }
+    
+    // Fallback : données de test
     res.json({
       success: true,
       message: `${mockProducts.length} produits synchronisés (mode test)`,
-      count: mockProducts.length
+      count: mockProducts.length,
+      source: 'test'
     });
   } catch (error) {
     logger.error('Erreur lors de la synchronisation des produits:', error);
@@ -88,12 +104,28 @@ router.post('/sync', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { shop } = req.query;
+    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    logger.info(`Récupération des produits pour ${shop}`);
+    logger.info(`Récupération des produits pour ${shop}, token présent: ${!!accessToken}`);
+    
+    // Si nous avons un token d'accès, essayer de récupérer les vrais produits
+    if (accessToken) {
+      try {
+        const result = await shopifySimpleService.getProducts(shop, accessToken, req.query);
+        logger.info(`✅ ${result.products.length} produits récupérés depuis Shopify`);
+        return res.json(result);
+      } catch (shopifyError) {
+        logger.error('Erreur lors de la récupération des produits Shopify:', shopifyError);
+        logger.info('Utilisation des données de test comme fallback');
+      }
+    }
+    
+    // Fallback : utiliser les données de test
+    logger.info('Utilisation des données de test (pas de token)');
     
     // Filtrer les produits selon les paramètres de recherche
     const { search = '', status = '', sort = 'title' } = req.query;
@@ -136,9 +168,9 @@ router.get('/', async (req, res) => {
       total: filteredProducts.length,
       page: 1,
       limit: 20,
+      source: 'test'
     };
     
-    logger.info(`Retour de ${filteredProducts.length} produits`);
     res.json(result);
   } catch (error) {
     logger.error('Erreur lors de la récupération des produits:', error);
@@ -153,17 +185,32 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { shop } = req.query;
+    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
+    // Si nous avons un token d'accès, essayer de récupérer le vrai produit
+    if (accessToken) {
+      try {
+        const product = await shopifySimpleService.getProduct(shop, accessToken, id);
+        if (product) {
+          logger.info(`Produit ${id} trouvé sur Shopify pour ${shop}`);
+          return res.json(product);
+        }
+      } catch (shopifyError) {
+        logger.error(`Erreur lors de la récupération du produit ${id} sur Shopify:`, shopifyError);
+      }
+    }
+
+    // Fallback : données de test
     const product = mockProducts.find(p => p.id === id);
     if (!product) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
     
-    logger.info(`Produit ${id} trouvé pour ${shop}`);
+    logger.info(`Produit ${id} trouvé (données de test) pour ${shop}`);
     res.json(product);
   } catch (error) {
     logger.error(`Erreur lors de la récupération du produit ${req.params.id}:`, error);

@@ -24,29 +24,37 @@ import {
 } from '@shopify/polaris-icons';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
+import { api } from '../utils/api';
+import { useShopify } from '../contexts/ShopifyContext';
 
 export default function Products() {
   const navigate = useNavigate();
+  const { showToast } = useShopify();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState([]);
   const [sortValue, setSortValue] = useState('title');
+  const [syncing, setSyncing] = useState(false);
 
   // Charger les produits
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/products', {
-        params: {
-          search: searchValue,
-          status: statusFilter.join(','),
-          sort: sortValue,
-        },
+      const response = await api.products.getAll({
+        search: searchValue,
+        status: statusFilter.join(','),
+        sort: sortValue,
       });
       setProducts(response.products || []);
+      
+      // Afficher un message si on utilise les données de test
+      if (response.source === 'test') {
+        toast('Utilisation des données de test. Connectez-vous à Shopify pour voir vos vrais produits.', {
+          icon: '⚠️',
+        });
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
       toast.error('Impossible de charger les produits');
@@ -58,6 +66,25 @@ export default function Products() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  // Synchroniser avec Shopify
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await api.products.sync();
+      
+      if (response.success) {
+        toast.success(response.message);
+        // Recharger les produits après la synchronisation
+        await loadProducts();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation:', error);
+      toast.error('Impossible de synchroniser les produits');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Calculer la couleur du badge SEO
   const getSEOBadge = (score) => {
@@ -205,7 +232,7 @@ export default function Products() {
         primaryAction={{
           content: 'Synchroniser les produits',
           icon: RefreshIcon,
-          onAction: loadProducts,
+          onAction: handleSync,
         }}
       >
         <Layout>
@@ -215,7 +242,7 @@ export default function Products() {
                 heading="Aucun produit trouvé"
                 action={{
                   content: 'Synchroniser avec Shopify',
-                  onAction: loadProducts,
+                  onAction: handleSync,
                 }}
                 image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
               >
@@ -235,7 +262,8 @@ export default function Products() {
       primaryAction={{
         content: 'Synchroniser',
         icon: RefreshIcon,
-        onAction: loadProducts,
+        onAction: handleSync,
+        loading: syncing,
       }}
       secondaryActions={[
         {

@@ -1,97 +1,177 @@
-import axios from 'axios';
-import { useAuthStore } from '../store/authStore';
-import { useNotificationStore } from '../store/notificationStore';
+import { logger } from './logger';
 
-// Configuration de base
+// Instance App Bridge (sera définie depuis le contexte)
+let appBridge = null;
+
+// Fonction pour définir l'instance App Bridge
+export const setAppBridge = (bridge) => {
+  appBridge = bridge;
+  logger.info('App Bridge configuré dans api.js');
+};
+
+// Fonction pour obtenir un token de session depuis App Bridge
+const getSessionToken = async () => {
+  if (!appBridge) {
+    logger.warn('App Bridge non disponible, pas de token de session');
+    return null;
+  }
+
+  try {
+    // Utiliser authenticatedFetch si disponible
+    if (appBridge.authenticatedFetch) {
+      return 'use-authenticated-fetch';
+    }
+    
+    // Sinon essayer d'obtenir un token de session
+    if (appBridge.getSessionToken) {
+      const token = await appBridge.getSessionToken();
+      return token;
+    }
+    
+    return null;
+  } catch (error) {
+    logger.error('Erreur lors de la récupération du token de session:', error);
+    return null;
+  }
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-// Fonction pour obtenir les paramètres Shopify depuis l'URL
+// Récupérer les paramètres Shopify de l'URL
 const getShopifyParams = () => {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    shop: params.get('shop'),
-    host: params.get('host'),
-    embedded: params.get('embedded'),
-    hmac: params.get('hmac'),
-    timestamp: params.get('timestamp'),
-  };
+  const searchParams = new URLSearchParams(window.location.search);
+  const params = {};
+  
+  // Paramètres essentiels
+  ['shop', 'host', 'hmac', 'timestamp', 'session', 'locale', 'embedded'].forEach(param => {
+    const value = searchParams.get(param);
+    if (value) params[param] = value;
+  });
+
+  logger.debug('Paramètres Shopify récupérés:', params);
+  return params;
 };
 
-// Créer une instance axios avec configuration de base
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  // Ajouter withCredentials pour gérer les cookies de session
-  withCredentials: true,
-});
-
-// Intercepteur pour ajouter automatiquement les paramètres Shopify
-apiClient.interceptors.request.use((config) => {
-  const shopifyParams = getShopifyParams();
-  
-  // Ajouter les paramètres Shopify à toutes les requêtes
-  if (!config.params) {
-    config.params = {};
-  }
-  
-  // Ajouter les paramètres Shopify s'ils existent
-  Object.entries(shopifyParams).forEach(([key, value]) => {
-    if (value && !config.params[key]) {
-      config.params[key] = value;
-    }
-  });
-  
-  console.log('API Request:', {
-    url: config.url,
-    method: config.method,
-    params: config.params,
-    shopifyParams,
-  });
-  
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
-
-// Intercepteur de réponse pour gérer les erreurs
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('API Response:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data,
-    });
-    return response.data;
-  },
-  (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data,
-    });
+// Fonction helper pour faire les requêtes
+const fetchAPI = async (endpoint, options = {}) => {
+  try {
+    // Récupérer les paramètres Shopify
+    const shopifyParams = getShopifyParams();
     
-    if (error.response?.status === 401) {
-      console.warn('Unauthorized request - missing or invalid Shopify parameters');
+    // Construire l'URL avec les paramètres
+    const url = new URL(`${API_BASE_URL}${endpoint}`, window.location.origin);
+    Object.entries(shopifyParams).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+
+    // Obtenir le token de session
+    const sessionToken = await getSessionToken();
+    
+    // Préparer les headers
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Si nous avons un token de session et qu'il n'est pas 'use-authenticated-fetch'
+    if (sessionToken && sessionToken !== 'use-authenticated-fetch') {
+      headers['x-shopify-access-token'] = sessionToken;
+    }
+
+    // Si nous devons utiliser authenticatedFetch
+    let fetchFunction = fetch;
+    if (sessionToken === 'use-authenticated-fetch' && appBridge?.authenticatedFetch) {
+      fetchFunction = appBridge.authenticatedFetch;
+      logger.debug('Utilisation de authenticatedFetch');
+    }
+
+    logger.debug('API Request:', {
+      url: url.toString(),
+      method: options.method || 'GET',
+      params: shopifyParams,
+      hasToken: !!sessionToken
+    });
+
+    const response = await fetchFunction(url.toString(), {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      logger.error('API Error:', {
+        url: endpoint,
+        status: response.status,
+        message: errorData?.error || response.statusText,
+        data: errorData
+      });
+      throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Log la source des données pour debug
+    if (data.source) {
+      logger.info(`Données provenant de: ${data.source}`);
     }
     
-    return Promise.reject(error);
+    return data;
+  } catch (error) {
+    logger.error('Erreur lors de la requête API:', error);
+    throw error;
   }
-);
+};
 
-// Méthodes utilitaires
+// API Endpoints
 export const api = {
-  get: (url, config = {}) => apiClient.get(url, config),
-  post: (url, data = {}, config = {}) => apiClient.post(url, data, config),
-  put: (url, data = {}, config = {}) => apiClient.put(url, data, config),
-  patch: (url, data = {}, config = {}) => apiClient.patch(url, data, config),
-  delete: (url, config = {}) => apiClient.delete(url, config),
-};
+  // Produits
+  products: {
+    getAll: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return fetchAPI(`/products${queryString ? `?${queryString}` : ''}`);
+    },
+    getById: (id) => fetchAPI(`/products/${id}`),
+    sync: () => fetchAPI('/products/sync', { method: 'POST' }),
+  },
 
-export default api;
+  // Collections
+  collections: {
+    getAll: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return fetchAPI(`/collections${queryString ? `?${queryString}` : ''}`);
+    },
+    getById: (id) => fetchAPI(`/collections/${id}`),
+  },
+
+  // Optimisations
+  optimizations: {
+    generateSuggestions: (type, id) => 
+      fetchAPI(`/ai/generate-suggestions`, {
+        method: 'POST',
+        body: JSON.stringify({ type, id }),
+      }),
+    applySuggestions: (type, id, suggestions) =>
+      fetchAPI(`/ai/apply-suggestions`, {
+        method: 'POST',
+        body: JSON.stringify({ type, id, suggestions }),
+      }),
+    bulkOptimize: (items) =>
+      fetchAPI(`/optimizations/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      }),
+  },
+
+  // Utilisateurs
+  users: {
+    getProfile: () => fetchAPI('/users/profile'),
+    updateProfile: (data) => 
+      fetchAPI('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+};
 
 // Classe API
 class ApiClient {

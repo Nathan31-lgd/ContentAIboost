@@ -1,103 +1,92 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAppBridge } from '@shopify/app-bridge-react';
-import { getSessionToken } from '@shopify/app-bridge-utils';
-import { useAuthStore } from '../store/authStore';
 import { logger } from '../utils/logger';
+import { setAppBridge } from '../utils/api';
 
-const ShopifyContext = createContext({});
+const ShopifyContext = createContext();
 
 export const useShopify = () => {
   const context = useContext(ShopifyContext);
   if (!context) {
-    throw new Error('useShopify doit être utilisé dans un ShopifyProvider');
+    throw new Error('useShopify must be used within a ShopifyProvider');
   }
   return context;
 };
 
-export const ShopifyProvider = ({ children }) => {
-  let app = null;
-  
-  // Essayer d'obtenir l'app bridge, mais ne pas échouer si ce n'est pas disponible
-  try {
-    app = useAppBridge();
-  } catch (error) {
-    console.warn('App Bridge non disponible:', error.message);
-  }
-
-  const { setToken, setUser } = useAuthStore();
-  const [loading, setLoading] = useState(true);
+export const ShopifyProvider = ({ children, appBridge }) => {
   const [shop, setShop] = useState(null);
+  const [isEmbedded, setIsEmbedded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initializeSession = async () => {
-      try {
-        // Extraire les informations depuis l'URL
-        const params = new URLSearchParams(window.location.search);
-        const shopDomain = params.get('shop');
-        const embedded = params.get('embedded');
-        const hmac = params.get('hmac');
-        
-        console.log('=== ShopifyContext Debug ===');
-        console.log('Shop from URL:', shopDomain);
-        console.log('Embedded:', embedded);
-        console.log('HMAC:', hmac);
-        console.log('App Bridge available:', !!app);
-        
-        if (shopDomain) {
-          setShop(shopDomain);
-          setUser({ shop: shopDomain });
-          console.log('Shop set to:', shopDomain);
-        }
-
-        // Seulement essayer d'obtenir le token si App Bridge est disponible
-        if (app) {
-          try {
-            const token = await getSessionToken(app);
-            if (token) {
-              setToken(token);
-              console.log('Session token obtained');
-            }
-          } catch (tokenError) {
-            console.warn('Impossible d\'obtenir le token de session:', tokenError.message);
-          }
-        } else {
-          // Si pas d'App Bridge, créer un token fictif pour les tests
-          if (shopDomain) {
-            setToken('mock-token-for-development');
-            console.log('Using mock token for development');
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de l\'initialisation de la session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeSession();
+    // Extraire les paramètres de l'URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const shopParam = searchParams.get('shop');
+    const embeddedParam = searchParams.get('embedded');
     
-    // Seulement configurer le rafraîchissement du token si App Bridge est disponible
-    if (app) {
-      const interval = setInterval(async () => {
-        try {
-          const token = await getSessionToken(app);
-          if (token) {
-            setToken(token);
-          }
-        } catch (error) {
-          console.warn('Erreur lors du rafraîchissement du token:', error.message);
-        }
-      }, 50 * 60 * 1000); // 50 minutes
-
-      return () => clearInterval(interval);
+    if (shopParam) {
+      setShop(shopParam);
+      logger.info('Shop détecté:', shopParam);
     }
-  }, [app, setToken, setUser]);
+    
+    setIsEmbedded(embeddedParam === '1' || embeddedParam === 'true');
+    
+    // Passer App Bridge à l'API si disponible
+    if (appBridge) {
+      logger.info('Configuration de App Bridge dans l\'API');
+      setAppBridge(appBridge);
+    }
+    
+    setIsLoading(false);
+  }, [appBridge]);
+
+  // Fonction pour naviguer (utilise App Bridge si disponible)
+  const navigate = (path) => {
+    if (appBridge?.dispatch) {
+      try {
+        // Utiliser App Bridge pour la navigation
+        appBridge.dispatch({
+          type: 'APP::NAVIGATION::REDIRECT',
+          payload: {
+            path,
+          },
+        });
+      } catch (error) {
+        logger.error('Erreur de navigation App Bridge:', error);
+        // Fallback : navigation standard
+        window.location.href = path;
+      }
+    } else {
+      // Navigation standard si App Bridge n'est pas disponible
+      window.location.href = path;
+    }
+  };
+
+  // Fonction pour afficher un toast (utilise App Bridge si disponible)
+  const showToast = (message, isError = false) => {
+    if (appBridge?.toast) {
+      try {
+        appBridge.toast.show(message, {
+          duration: 3000,
+          isError,
+        });
+      } catch (error) {
+        logger.error('Erreur toast App Bridge:', error);
+        // Fallback : utiliser alert
+        alert(message);
+      }
+    } else {
+      // Fallback : utiliser alert
+      alert(message);
+    }
+  };
 
   const value = {
-    app,
     shop,
-    loading,
-    isAppBridgeAvailable: !!app,
+    isEmbedded,
+    isLoading,
+    appBridge,
+    navigate,
+    showToast,
   };
 
   return (
