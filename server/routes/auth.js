@@ -1,11 +1,9 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import shopify from '../config/shopify.js';
-import prisma from '../config/prisma.js';
-import { encrypt } from '../utils/encryption.js';
 import { logger } from '../utils/logger.js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
+import tokenStore from '../services/tokenStore.js';
 
 const router = express.Router();
 
@@ -30,6 +28,7 @@ router.get('/callback', async (req, res) => {
       .digest('hex');
 
     if (generatedHmac !== hmac) {
+      logger.error('HMAC invalide pour', shop);
       return res.status(401).json({ error: 'HMAC invalide' });
     }
 
@@ -46,25 +45,22 @@ router.get('/callback', async (req, res) => {
       }),
     });
 
+    if (!accessTokenResponse.ok) {
+      throw new Error(`Erreur lors de l'échange du code: ${accessTokenResponse.status}`);
+    }
+
     const { access_token } = await accessTokenResponse.json();
 
-    // Sauvegarder le shop et le token dans la base de données
-    await prisma.shop.upsert({
-      where: { shopifyDomain: shop },
-      update: { 
-        shopifyAccessToken: access_token,
-      },
-      create: {
-        shopifyDomain: shop,
-        shopifyAccessToken: access_token,
-      },
-    });
+    // Stocker le token dans notre store en mémoire
+    tokenStore.setToken(shop, access_token);
 
-    logger.info(`Installation réussie pour la boutique: ${shop}`);
+    logger.info(`✅ Installation réussie pour la boutique: ${shop}`);
 
     // Rediriger vers l'app dans l'admin Shopify
-    const appUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_APP_NAME.toLowerCase()}`;
-    res.redirect(appUrl);
+    const redirectUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}?shop=${shop}&host=${host}`;
+    logger.info(`Redirection vers: ${redirectUrl}`);
+    
+    res.redirect(redirectUrl);
   } catch (error) {
     logger.error('Erreur lors du callback OAuth:', error);
     res.status(500).json({ error: 'Erreur lors de l\'installation' });
@@ -72,41 +68,60 @@ router.get('/callback', async (req, res) => {
 });
 
 // Route pour démarrer le processus d'authentification
-router.get('/', (req, res) => {
-  const { shop } = req.query;
-  if (!shop) {
-    return res.status(400).send('Missing shop parameter');
+router.get('/install', async (req, res) => {
+  try {
+    const { shop } = req.query;
+    
+    if (!shop) {
+      return res.status(400).json({ error: 'Paramètre shop manquant' });
+    }
+
+    // Nettoyer le nom de la boutique
+    const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const shopDomain = cleanShop.includes('.') ? cleanShop : `${cleanShop}.myshopify.com`;
+
+    // Créer l'URL d'autorisation OAuth
+    const redirectUri = `${process.env.SHOPIFY_APP_URL}/api/auth/callback`;
+    const installUrl = `https://${shopDomain}/admin/oauth/authorize?` +
+      `client_id=${process.env.SHOPIFY_API_KEY}&` +
+      `scope=${process.env.SHOPIFY_SCOPES}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+    logger.info(`Installation demandée pour la boutique: ${shopDomain}`);
+    logger.info(`URL d'installation: ${installUrl}`);
+    
+    // Rediriger vers Shopify pour l'autorisation
+    res.redirect(installUrl);
+  } catch (error) {
+    logger.error('Erreur lors de l\'installation:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'installation' });
   }
-  
-  // La redirection est gérée par le middleware shopifyAuth
-  res.send('Redirecting to Shopify for authentication...');
 });
 
-// Route pour vérifier la validité d'un token JWT
-router.get('/verify', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ valid: false, message: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ valid: false, message: 'Invalid token' });
-    }
-
-    const shop = await prisma.shop.findUnique({
-      where: { shopifyDomain: decoded.shop },
-      select: { shopifyDomain: true, email: true, plan: true }
-    });
-
-    if (!shop) {
-      return res.status(401).json({ valid: false, message: 'Shop not found' });
-    }
+// Route pour vérifier le statut d'authentification
+router.get('/status', (req, res) => {
+  try {
+    const { shop } = req.query;
     
-    res.json({ valid: true, user: shop });
-  });
+    if (!shop) {
+      return res.status(400).json({ error: 'Paramètre shop manquant' });
+    }
+
+    const hasToken = tokenStore.hasValidToken(shop);
+    const allShops = tokenStore.listShops();
+    
+    logger.info(`Statut d'authentification pour ${shop}: ${hasToken ? 'OK' : 'KO'}`);
+    logger.info(`Boutiques avec token: ${allShops.join(', ')}`);
+    
+    res.json({
+      authenticated: hasToken,
+      shop,
+      allShops,
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la vérification du statut:', error);
+    res.status(500).json({ error: 'Erreur lors de la vérification du statut' });
+  }
 });
 
 // Route de déconnexion
@@ -120,6 +135,7 @@ router.post('/logout', async (req, res) => {
       });
     }
 
+    tokenStore.removeToken(shop);
     logger.info(`🔓 Déconnexion réussie pour: ${shop}`);
     
     res.json({
@@ -130,32 +146,6 @@ router.post('/logout', async (req, res) => {
     res.status(500).json({
       error: 'Erreur lors de la déconnexion'
     });
-  }
-});
-
-// Route d'installation de l'app
-router.get('/install', async (req, res) => {
-  try {
-    const { shop } = req.query;
-    
-    if (!shop) {
-      return res.status(400).json({ error: 'Paramètre shop manquant' });
-    }
-
-    // Créer l'URL d'autorisation OAuth
-    const redirectUri = `${process.env.SHOPIFY_APP_URL}/api/auth/callback`;
-    const installUrl = `https://${shop}/admin/oauth/authorize?` +
-      `client_id=${process.env.SHOPIFY_API_KEY}&` +
-      `scope=${process.env.SHOPIFY_SCOPES}&` +
-      `redirect_uri=${redirectUri}`;
-
-    logger.info(`Installation demandée pour la boutique: ${shop}`);
-    
-    // Rediriger vers Shopify pour l'autorisation
-    res.redirect(installUrl);
-  } catch (error) {
-    logger.error('Erreur lors de l\'installation:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'installation' });
   }
 });
 

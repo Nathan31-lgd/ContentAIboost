@@ -50,9 +50,10 @@ export default function Products() {
       setProducts(response.products || []);
       
       // Afficher un message si on utilise les données de test
-      if (response.source === 'test') {
-        toast('Utilisation des données de test. Connectez-vous à Shopify pour voir vos vrais produits.', {
-          icon: '⚠️',
+      if (response.source === 'test' && response.needsAuth) {
+        toast('Authentification requise pour voir vos vrais produits.', {
+          icon: '🔐',
+          duration: 4000,
         });
       }
     } catch (error) {
@@ -241,12 +242,16 @@ export default function Products() {
               <EmptyState
                 heading="Aucun produit trouvé"
                 action={{
-                  content: 'Synchroniser avec Shopify',
+                  content: 'Connecter ma boutique',
+                  onAction: () => navigate('/auth'),
+                }}
+                secondaryAction={{
+                  content: 'Synchroniser',
                   onAction: handleSync,
                 }}
                 image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
               >
-                <p>Synchronisez vos produits depuis votre boutique Shopify pour commencer l'optimisation SEO.</p>
+                <p>Connectez votre boutique Shopify pour voir vos produits et commencer l'optimisation SEO.</p>
               </EmptyState>
             </Card>
           </Layout.Section>

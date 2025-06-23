@@ -1,6 +1,7 @@
 import express from 'express';
 import { logger } from '../utils/logger.js';
 import shopifySimpleService from '../services/shopifySimpleService.js';
+import tokenStore from '../services/tokenStore.js';
 
 const router = express.Router();
 
@@ -62,7 +63,6 @@ const mockProducts = [
 router.post('/sync', async (req, res) => {
   try {
     const { shop } = req.query;
-    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
@@ -70,10 +70,13 @@ router.post('/sync', async (req, res) => {
 
     logger.info(`Synchronisation demandée pour ${shop}`);
     
-    // Si nous avons un token d'accès, essayer de récupérer les vrais produits
+    // Récupérer le token depuis notre store
+    const accessToken = tokenStore.getToken(shop);
+    
     if (accessToken) {
       try {
         const result = await shopifySimpleService.getProducts(shop, accessToken);
+        logger.info(`✅ ${result.total} produits synchronisés depuis Shopify pour ${shop}`);
         return res.json({
           success: true,
           message: `${result.total} produits récupérés depuis Shopify`,
@@ -81,17 +84,22 @@ router.post('/sync', async (req, res) => {
           source: 'shopify'
         });
       } catch (shopifyError) {
-        logger.error('Erreur Shopify, utilisation des données de test:', shopifyError);
+        logger.error('Erreur Shopify lors de la synchronisation:', shopifyError);
+        return res.status(500).json({
+          error: 'Erreur lors de la synchronisation avec Shopify',
+          details: shopifyError.message
+        });
       }
+    } else {
+      logger.warn(`Aucun token trouvé pour ${shop} - utilisation des données de test`);
+      return res.json({
+        success: true,
+        message: `${mockProducts.length} produits synchronisés (mode test - pas d'authentification)`,
+        count: mockProducts.length,
+        source: 'test',
+        needsAuth: true
+      });
     }
-    
-    // Fallback : données de test
-    res.json({
-      success: true,
-      message: `${mockProducts.length} produits synchronisés (mode test)`,
-      count: mockProducts.length,
-      source: 'test'
-    });
   } catch (error) {
     logger.error('Erreur lors de la synchronisation des produits:', error);
     res.status(500).json({
@@ -104,30 +112,33 @@ router.post('/sync', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { shop } = req.query;
-    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
+    // Récupérer le token depuis notre store
+    const accessToken = tokenStore.getToken(shop);
+    
     logger.info(`Récupération des produits pour ${shop}, token présent: ${!!accessToken}`);
     
-    // Si nous avons un token d'accès, essayer de récupérer les vrais produits
     if (accessToken) {
       try {
         const result = await shopifySimpleService.getProducts(shop, accessToken, req.query);
         logger.info(`✅ ${result.products.length} produits récupérés depuis Shopify`);
-        return res.json(result);
+        return res.json({
+          ...result,
+          source: 'shopify'
+        });
       } catch (shopifyError) {
         logger.error('Erreur lors de la récupération des produits Shopify:', shopifyError);
         logger.info('Utilisation des données de test comme fallback');
       }
+    } else {
+      logger.info(`Pas de token pour ${shop} - utilisation des données de test`);
     }
     
     // Fallback : utiliser les données de test
-    logger.info('Utilisation des données de test (pas de token)');
-    
-    // Filtrer les produits selon les paramètres de recherche
     const { search = '', status = '', sort = 'title' } = req.query;
     
     let filteredProducts = [...mockProducts];
@@ -168,7 +179,8 @@ router.get('/', async (req, res) => {
       total: filteredProducts.length,
       page: 1,
       limit: 20,
-      source: 'test'
+      source: 'test',
+      needsAuth: !accessToken
     };
     
     res.json(result);
@@ -185,19 +197,23 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { shop } = req.query;
-    const accessToken = req.headers['x-shopify-access-token'];
     
     if (!shop) {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    // Si nous avons un token d'accès, essayer de récupérer le vrai produit
+    // Récupérer le token depuis notre store
+    const accessToken = tokenStore.getToken(shop);
+
     if (accessToken) {
       try {
         const product = await shopifySimpleService.getProduct(shop, accessToken, id);
         if (product) {
           logger.info(`Produit ${id} trouvé sur Shopify pour ${shop}`);
-          return res.json(product);
+          return res.json({
+            ...product,
+            source: 'shopify'
+          });
         }
       } catch (shopifyError) {
         logger.error(`Erreur lors de la récupération du produit ${id} sur Shopify:`, shopifyError);
@@ -211,7 +227,11 @@ router.get('/:id', async (req, res) => {
     }
     
     logger.info(`Produit ${id} trouvé (données de test) pour ${shop}`);
-    res.json(product);
+    res.json({
+      ...product,
+      source: 'test',
+      needsAuth: !accessToken
+    });
   } catch (error) {
     logger.error(`Erreur lors de la récupération du produit ${req.params.id}:`, error);
     res.status(500).json({
