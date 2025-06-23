@@ -34,6 +34,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-shopify-shop-domain'],
 }));
 app.use(compression());
+app.use((req, res, next) => {
+  const shop = req.query.shop;
+  if (shop) {
+    res.setHeader(
+      'Content-Security-Policy',
+      `frame-ancestors https://${encodeURIComponent(
+        shop
+      )} https://admin.shopify.com;`
+    );
+  } else {
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none';");
+  }
+  next();
+});
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
