@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AppProvider } from '@shopify/polaris';
-import { AppBridgeProvider } from '@shopify/app-bridge-react';
+import { Provider as AppBridgeProvider } from '@shopify/app-bridge-react';
 import { ShopifyProvider } from './contexts/ShopifyContext';
 import frTranslations from '@shopify/polaris/locales/fr.json';
 import App from './App';
