@@ -31,13 +31,22 @@ export const ShopifyProvider = ({ children }) => {
   useEffect(() => {
     const initializeSession = async () => {
       try {
-        // Extraire les informations de la boutique depuis l'URL
+        // Extraire les informations depuis l'URL
         const params = new URLSearchParams(window.location.search);
         const shopDomain = params.get('shop');
+        const embedded = params.get('embedded');
+        const hmac = params.get('hmac');
+        
+        console.log('=== ShopifyContext Debug ===');
+        console.log('Shop from URL:', shopDomain);
+        console.log('Embedded:', embedded);
+        console.log('HMAC:', hmac);
+        console.log('App Bridge available:', !!app);
         
         if (shopDomain) {
           setShop(shopDomain);
           setUser({ shop: shopDomain });
+          console.log('Shop set to:', shopDomain);
         }
 
         // Seulement essayer d'obtenir le token si App Bridge est disponible
@@ -46,9 +55,16 @@ export const ShopifyProvider = ({ children }) => {
             const token = await getSessionToken(app);
             if (token) {
               setToken(token);
+              console.log('Session token obtained');
             }
           } catch (tokenError) {
             console.warn('Impossible d\'obtenir le token de session:', tokenError.message);
+          }
+        } else {
+          // Si pas d'App Bridge, créer un token fictif pour les tests
+          if (shopDomain) {
+            setToken('mock-token-for-development');
+            console.log('Using mock token for development');
           }
         }
       } catch (error) {
