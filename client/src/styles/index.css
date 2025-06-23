@@ -251,4 +251,39 @@ code {
   .no-print {
     display: none !important;
   }
+}
+
+/* Fix pour les TextField de Polaris dans la page Settings */
+.Polaris-TextField__Input {
+  background-color: #f9fafb !important;
+  border: 1px solid #d1d5db !important;
+  color: #111827 !important;
+}
+
+.Polaris-TextField__Input:focus {
+  background-color: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.Polaris-TextField__Input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Dark mode support for Polaris TextFields */
+@media (prefers-color-scheme: dark) {
+  .Polaris-TextField__Input {
+    background-color: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #f9fafb !important;
+  }
+  
+  .Polaris-TextField__Input:focus {
+    background-color: #1f2937 !important;
+    border-color: #3b82f6 !important;
+  }
+  
+  .Polaris-TextField__Input::placeholder {
+    color: #9ca3af !important;
+  }
 } 

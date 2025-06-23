@@ -121,6 +121,7 @@ export default function Settings() {
                     helpText="Utilisée pour les modèles GPT-4, GPT-3.5, etc."
                     error={validationStatus.openai.message}
                     connectedRight={renderValidationIcon('openai')}
+                    placeholder="sk-..."
                   />
                 </div>
                 <Button onClick={() => handleValidateKey('openai')} loading={validationStatus.openai.status === 'loading'}>Vérifier</Button>
@@ -137,6 +138,7 @@ export default function Settings() {
                     helpText="Utilisée pour les modèles Claude 3 (Opus, Sonnet, Haiku)."
                     error={validationStatus.anthropic.message}
                     connectedRight={renderValidationIcon('anthropic')}
+                    placeholder="sk-ant-..."
                   />
                 </div>
                 <Button onClick={() => handleValidateKey('anthropic')} loading={validationStatus.anthropic.status === 'loading'}>Vérifier</Button>
@@ -153,6 +155,7 @@ export default function Settings() {
                     helpText="Utilisée pour les modèles Gemini Pro."
                     error={validationStatus.google.message}
                     connectedRight={renderValidationIcon('google')}
+                    placeholder="AIza..."
                   />
                 </div>
                 <Button onClick={() => handleValidateKey('google')} loading={validationStatus.google.status === 'loading'}>Vérifier</Button>
