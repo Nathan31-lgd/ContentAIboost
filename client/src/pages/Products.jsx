@@ -42,6 +42,16 @@ export default function Products() {
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Essayer d'abord de synchroniser automatiquement en arrière-plan
+      try {
+        await api.products.sync();
+        console.log('Synchronisation automatique réussie');
+      } catch (syncError) {
+        // Ignorer l'erreur de sync, on essaie de charger quand même
+        console.warn('Synchronisation automatique échouée:', syncError);
+      }
+      
       const response = await api.products.getAll({
         search: searchValue,
         status: statusFilter.join(','),
@@ -53,8 +63,8 @@ export default function Products() {
       console.error('Erreur lors du chargement des produits:', error);
       
       // Si l'erreur indique un problème d'authentification
-      if (error.status === 401 || (error.needsAuth && error.products)) {
-        toast('Veuillez connecter votre boutique Shopify pour voir vos produits.', {
+      if (error.status === 401 || error.message?.includes('Authentication') || error.message?.includes('Token')) {
+        toast('Authentification nécessaire. La synchronisation est en cours...', {
           icon: '🔐',
           duration: 4000,
         });
@@ -237,29 +247,29 @@ export default function Products() {
           content: 'Synchroniser les produits',
           icon: RefreshIcon,
           onAction: handleSync,
+          loading: syncing,
         }}
       >
         <Layout>
           <Layout.Section>
             <Card>
-              <EmptyState
-                heading="Aucun produit trouvé"
-                action={{
-                  content: 'Installer l\'application',
-                  onAction: () => {
-                    const currentUrl = window.location.origin;
-                    const shopParam = new URLSearchParams(window.location.search).get('shop') || 'votre-boutique.myshopify.com';
-                    window.location.href = `${currentUrl}/api/auth/install?shop=${shopParam}`;
-                  },
-                }}
-                secondaryAction={{
-                  content: 'Synchroniser',
-                  onAction: handleSync,
-                }}
-                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-              >
-                <p>Installez l'application dans votre boutique Shopify pour accéder à vos produits et commencer l'optimisation SEO.</p>
-              </EmptyState>
+              <div style={{ padding: '60px', textAlign: 'center' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <Icon source={StarFilledIcon} />
+                </div>
+                <Text variant="headingMd">Aucun produit trouvé</Text>
+                <Text variant="bodyMd" tone="subdued" as="p" style={{ marginTop: '8px', marginBottom: '20px' }}>
+                  Synchronisez vos produits depuis votre boutique Shopify pour commencer l'optimisation SEO.
+                </Text>
+                <Button 
+                  primary 
+                  onClick={handleSync}
+                  loading={syncing}
+                  icon={RefreshIcon}
+                >
+                  Synchroniser les produits maintenant
+                </Button>
+              </div>
             </Card>
           </Layout.Section>
         </Layout>
