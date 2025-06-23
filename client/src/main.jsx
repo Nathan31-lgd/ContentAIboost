@@ -25,8 +25,13 @@ try {
     throw new Error("Le paramètre 'host' est manquant dans l'URL.");
   }
   
+  const apiKey = import.meta.env.VITE_SHOPIFY_API_KEY;
+  if (!apiKey) {
+    throw new Error("La variable d'environnement VITE_SHOPIFY_API_KEY est manquante. Veuillez la définir dans votre fichier .env ou dans les secrets de votre environnement de production.");
+  }
+
   const appBridgeConfig = {
-    apiKey: import.meta.env.VITE_SHOPIFY_API_KEY, // Assurez-vous que cette variable est définie dans .env
+    apiKey: apiKey,
     host: host,
     forceRedirect: true,
   };
