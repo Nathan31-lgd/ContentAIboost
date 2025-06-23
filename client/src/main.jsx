@@ -3,6 +3,8 @@ console.log('[main.jsx] Starting...');
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { AppProvider } from '@shopify/polaris';
+import frTranslations from '@shopify/polaris/locales/fr.json';
 import App from './App';
 import './styles/index.css';
 
@@ -20,9 +22,11 @@ try {
   
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AppProvider i18n={frTranslations}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AppProvider>
     </React.StrictMode>
   );
   
