@@ -17,17 +17,43 @@ const getSessionToken = async () => {
   }
 
   try {
-    // Utiliser authenticatedFetch si disponible
+    // Méthode 1: Utiliser getSessionToken si disponible
+    if (typeof appBridge.getSessionToken === 'function') {
+      logger.info('Tentative getSessionToken...');
+      const token = await appBridge.getSessionToken();
+      if (token) {
+        logger.info('Token obtenu via getSessionToken');
+        return token;
+      }
+    }
+
+    // Méthode 2: Utiliser authenticatedFetch
     if (appBridge.authenticatedFetch) {
+      logger.info('Utilisation de authenticatedFetch');
       return 'use-authenticated-fetch';
     }
-    
-    // Sinon essayer d'obtenir un token de session
-    if (appBridge.getSessionToken) {
-      const token = await appBridge.getSessionToken();
-      return token;
+
+    // Méthode 3: Essayer d'accéder aux actions App Bridge
+    if (appBridge.actions) {
+      logger.info('Tentative via actions App Bridge...');
+      // Essayer d'obtenir un token via les actions
+      if (appBridge.actions.AuthCode) {
+        const authCode = appBridge.actions.AuthCode.create();
+        const token = await authCode.dispatch();
+        if (token) {
+          logger.info('Token obtenu via AuthCode');
+          return token;
+        }
+      }
     }
-    
+
+    // Méthode 4: Essayer d'utiliser la session directement
+    if (appBridge.session) {
+      logger.info('Utilisation de la session App Bridge');
+      return appBridge.session.token || appBridge.session.accessToken;
+    }
+
+    logger.warn('Aucune méthode de token disponible dans App Bridge');
     return null;
   } catch (error) {
     logger.error('Erreur lors de la récupération du token de session:', error);
@@ -76,6 +102,7 @@ const fetchAPI = async (endpoint, options = {}) => {
     // Si nous avons un token de session et qu'il n'est pas 'use-authenticated-fetch'
     if (sessionToken && sessionToken !== 'use-authenticated-fetch') {
       headers['x-shopify-access-token'] = sessionToken;
+      headers['x-shopify-session-token'] = sessionToken;
     }
 
     // Si nous devons utiliser authenticatedFetch
@@ -89,7 +116,8 @@ const fetchAPI = async (endpoint, options = {}) => {
       url: url.toString(),
       method: options.method || 'GET',
       params: shopifyParams,
-      hasToken: !!sessionToken
+      hasToken: !!sessionToken,
+      tokenType: typeof sessionToken
     });
 
     const response = await fetchFunction(url.toString(), {
@@ -124,6 +152,12 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 // API Endpoints
 export const api = {
+  // Debug
+  auth: {
+    debug: (shop) => fetchAPI(`/auth/debug?shop=${shop}`),
+    status: (shop) => fetchAPI(`/auth/status?shop=${shop}`),
+  },
+
   // Produits
   products: {
     getAll: (params = {}) => {

@@ -149,4 +149,31 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+// Route de debug pour vérifier les tokens
+router.get('/debug', (req, res) => {
+  try {
+    const { shop } = req.query;
+    
+    const allShops = tokenStore.listShops();
+    const debugInfo = {
+      requestedShop: shop,
+      allShopsWithTokens: allShops,
+      hasTokenForShop: shop ? tokenStore.hasValidToken(shop) : false,
+      timestamp: new Date().toISOString(),
+      environment: {
+        SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY ? '✅ Définie' : '❌ Manquante',
+        SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET ? '✅ Définie' : '❌ Manquante',
+        SHOPIFY_SCOPES: process.env.SHOPIFY_SCOPES || 'Non définie',
+        SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 'Non définie',
+      }
+    };
+    
+    logger.info('Debug auth info:', debugInfo);
+    res.json(debugInfo);
+  } catch (error) {
+    logger.error('Erreur debug auth:', error);
+    res.status(500).json({ error: 'Erreur debug' });
+  }
+});
+
 export default router; 
