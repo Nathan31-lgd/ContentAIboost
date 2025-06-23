@@ -3,9 +3,10 @@ import { logger } from '../utils/logger.js';
 
 class ShopifySimpleService {
   // Récupérer les produits directement depuis l'API Shopify
-  async getProductsFromShopify(shop, accessToken) {
+  async getProductsFromShopify(shop, accessToken, options = {}) {
     try {
-      const url = `https://${shop}/admin/api/2024-01/products.json?limit=50`;
+      const limit = Math.min(parseInt(options.limit) || 50, 250);
+      const url = `https://${shop}/admin/api/2025-01/products.json?limit=${limit}`;
       
       const response = await fetch(url, {
         headers: {
@@ -27,14 +28,14 @@ class ShopifySimpleService {
         description: product.body_html || '',
         handle: product.handle,
         status: product.status,
-        image: product.image?.src || null,
+        image: product.image?.src || product.images?.[0]?.src || null,
         price: product.variants?.[0]?.price || '0',
         seo_score: this.calculateBasicSEOScore(product),
         optimized: false,
         updated_at: product.updated_at,
       }));
 
-      logger.info(`✅ ${products.length} produits récupérés depuis Shopify`);
+      logger.info(`✅ ${products.length} produits récupérés depuis Shopify (API 2025-01)`);
       return products;
 
     } catch (error) {
@@ -363,6 +364,49 @@ class ShopifySimpleService {
       
     } catch (error) {
       logger.error('Erreur lors du traitement des articles de blog:', error);
+      throw error;
+    }
+  }
+
+  // Récupérer un produit spécifique par son ID
+  async getProductById(shop, accessToken, productId) {
+    try {
+      const url = `https://${shop}/admin/api/2025-01/products/${productId}.json`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Erreur API Shopify: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const product = data.product;
+      
+      return {
+        id: product.id.toString(),
+        title: product.title,
+        description: product.body_html || '',
+        handle: product.handle,
+        status: product.status,
+        image: product.image?.src || product.images?.[0]?.src || null,
+        price: product.variants?.[0]?.price || '0',
+        seo_score: this.calculateBasicSEOScore(product),
+        seo_title: product.title,
+        seo_description: product.body_html ? product.body_html.substring(0, 160) : '',
+        optimized: false,
+        updated_at: product.updated_at,
+      };
+      
+    } catch (error) {
+      logger.error('Erreur lors de la récupération du produit:', error);
       throw error;
     }
   }

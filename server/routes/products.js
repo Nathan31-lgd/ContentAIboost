@@ -1,147 +1,94 @@
 import express from 'express';
 import { logger } from '../utils/logger.js';
 import shopifySimpleService from '../services/shopifySimpleService.js';
-import tokenStore from '../services/tokenStore.js';
+import { shopifyAuth } from '../middleware/shopifyAuth.js';
 
 const router = express.Router();
 
-// Synchroniser les produits depuis Shopify
-router.post('/sync', async (req, res) => {
+// Synchroniser les produits depuis Shopify (automatique)
+router.post('/sync', shopifyAuth, async (req, res) => {
   try {
-    const { shop } = req.query;
+    const { shop, accessToken } = req.shopifySession;
     
-    if (!shop) {
-      return res.status(400).json({ error: 'Paramètre shop manquant' });
-    }
-
-    logger.info(`Synchronisation demandée pour ${shop}`);
+    logger.info(`Synchronisation automatique demandée pour ${shop}`);
     
-    // Récupérer le token depuis notre store
-    const accessToken = tokenStore.getToken(shop);
+    // Récupérer les produits depuis Shopify
+    const products = await shopifySimpleService.getProductsFromShopify(shop, accessToken, { limit: 250 });
     
-    if (!accessToken) {
-      return res.status(401).json({
-        error: 'Authentification requise',
-        message: 'Veuillez connecter votre boutique Shopify pour synchroniser les produits',
-        needsAuth: true
-      });
-    }
-
-    try {
-      const result = await shopifySimpleService.getProducts(shop, accessToken);
-      logger.info(`✅ ${result.total} produits synchronisés depuis Shopify pour ${shop}`);
-      return res.json({
+    if (products && products.length > 0) {
+      res.json({
         success: true,
-        message: `${result.total} produits récupérés depuis Shopify`,
-        count: result.total,
-        source: 'shopify'
+        message: `${products.length} produits synchronisés avec succès`,
+        count: products.length
       });
-    } catch (shopifyError) {
-      logger.error('Erreur Shopify lors de la synchronisation:', shopifyError);
-      return res.status(500).json({
-        error: 'Erreur lors de la synchronisation avec Shopify',
-        details: shopifyError.message
+    } else {
+      res.json({
+        success: true,
+        message: 'Aucun produit trouvé dans votre boutique',
+        count: 0
       });
     }
   } catch (error) {
-    logger.error('Erreur lors de la synchronisation des produits:', error);
+    logger.error('Erreur lors de la synchronisation:', error);
     res.status(500).json({
-      error: 'Erreur lors de la synchronisation des produits'
+      error: 'Erreur lors de la synchronisation',
+      message: error.message
     });
   }
 });
 
-// Récupérer la liste des produits
-router.get('/', async (req, res) => {
+// Récupérer tous les produits
+router.get('/', shopifyAuth, async (req, res) => {
   try {
-    const { shop } = req.query;
-    
-    if (!shop) {
-      return res.status(400).json({ error: 'Paramètre shop manquant' });
-    }
-
-    // Récupérer le token depuis notre store
-    const accessToken = tokenStore.getToken(shop);
-    
-    if (!accessToken) {
-      return res.status(401).json({
-        error: 'Authentification requise',
-        message: 'Veuillez connecter votre boutique Shopify pour voir vos produits',
-        needsAuth: true,
-        products: [],
-        total: 0
-      });
-    }
+    const { shop, accessToken } = req.shopifySession;
+    const { search, status, sort, limit = 50, offset = 0 } = req.query;
 
     logger.info(`Récupération des produits pour ${shop}`);
-    
-    try {
-      const result = await shopifySimpleService.getProducts(shop, accessToken, req.query);
-      logger.info(`✅ ${result.products.length} produits récupérés depuis Shopify`);
-      return res.json({
-        ...result,
-        source: 'shopify'
-      });
-    } catch (shopifyError) {
-      logger.error('Erreur lors de la récupération des produits Shopify:', shopifyError);
-      return res.status(500).json({
-        error: 'Erreur lors de la récupération des produits depuis Shopify',
-        message: 'Impossible de récupérer les produits. Vérifiez votre connexion Shopify.',
-        details: shopifyError.message
-      });
-    }
+
+    // Récupérer les produits directement depuis Shopify
+    const products = await shopifySimpleService.getProductsFromShopify(shop, accessToken, {
+      search,
+      status,
+      sort,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      products: products || [],
+      total: products?.length || 0,
+      source: 'shopify'
+    });
+
   } catch (error) {
     logger.error('Erreur lors de la récupération des produits:', error);
     res.status(500).json({
-      error: 'Erreur lors de la récupération des produits'
+      error: 'Impossible de récupérer les produits',
+      message: error.message
     });
   }
 });
 
 // Récupérer un produit spécifique
-router.get('/:id', async (req, res) => {
+router.get('/:id', shopifyAuth, async (req, res) => {
   try {
+    const { shop, accessToken } = req.shopifySession;
     const { id } = req.params;
-    const { shop } = req.query;
-    
-    if (!shop) {
-      return res.status(400).json({ error: 'Paramètre shop manquant' });
-    }
 
-    // Récupérer le token depuis notre store
-    const accessToken = tokenStore.getToken(shop);
+    const product = await shopifySimpleService.getProductById(shop, accessToken, id);
 
-    if (!accessToken) {
-      return res.status(401).json({
-        error: 'Authentification requise',
-        message: 'Veuillez connecter votre boutique Shopify pour voir ce produit',
-        needsAuth: true
+    if (!product) {
+      return res.status(404).json({
+        error: 'Produit non trouvé'
       });
     }
 
-    try {
-      const product = await shopifySimpleService.getProduct(shop, accessToken, id);
-      if (!product) {
-        return res.status(404).json({ error: 'Produit non trouvé' });
-      }
-      
-      logger.info(`Produit ${id} trouvé sur Shopify pour ${shop}`);
-      return res.json({
-        ...product,
-        source: 'shopify'
-      });
-    } catch (shopifyError) {
-      logger.error(`Erreur lors de la récupération du produit ${id} sur Shopify:`, shopifyError);
-      return res.status(500).json({
-        error: 'Erreur lors de la récupération du produit depuis Shopify',
-        message: 'Impossible de récupérer ce produit. Vérifiez votre connexion Shopify.',
-        details: shopifyError.message
-      });
-    }
+    res.json({ product });
   } catch (error) {
     logger.error(`Erreur lors de la récupération du produit ${req.params.id}:`, error);
     res.status(500).json({
-      error: 'Erreur lors de la récupération du produit'
+      error: 'Impossible de récupérer le produit',
+      message: error.message
     });
   }
 });

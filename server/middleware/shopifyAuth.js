@@ -1,41 +1,80 @@
 import { getShopifyAPI } from '../config/shopify.js';
 import { logger } from '../utils/logger.js';
-import { ERROR_MESSAGES } from '../../shared/constants/index.js';
+import tokenStore from '../services/tokenStore.js';
 
 export const shopifyAuth = async (req, res, next) => {
   try {
-    // Récupérer les informations de session depuis les headers
-    const shop = req.headers['x-shopify-shop-domain'];
-    const accessToken = req.headers['x-shopify-access-token'];
+    // 1. Vérifier les paramètres Shopify depuis query params (App Bridge)
+    const shop = req.query.shop || req.headers['x-shopify-shop-domain'];
     
-    if (!shop || !accessToken) {
-      return res.status(401).json({ 
-        error: ERROR_MESSAGES.UNAUTHORIZED,
-        message: 'Informations Shopify manquantes' 
+    if (!shop) {
+      return res.status(400).json({
+        error: 'Paramètre shop manquant',
+        needsAuth: true,
+        message: 'Le paramètre shop est requis pour l\'authentification'
       });
     }
 
-    // Valider le format de la boutique
-    if (!shop.match(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/)) {
-      return res.status(400).json({ 
-        error: 'Format de boutique invalide',
-        message: 'Le domaine de la boutique doit être au format .myshopify.com' 
-      });
+    // 2. Nettoyer le nom de la boutique
+    const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const shopDomain = cleanShop.includes('.') ? cleanShop : `${cleanShop}.myshopify.com`;
+
+    // 3. Vérifier si on a un token d'accès stocké
+    const storedToken = tokenStore.getToken(shopDomain);
+    if (storedToken) {
+      req.shopifySession = {
+        shop: shopDomain,
+        accessToken: storedToken
+      };
+      
+      logger.info(`✅ Token d'accès trouvé pour ${shopDomain}`);
+      return next();
     }
 
-    // Ajouter les informations Shopify à la requête
-    req.shopify = {
-      shop,
-      accessToken,
-      apiVersion: '2024-01' // Version actuelle de l'API Shopify
-    };
+    // 4. Vérifier le token de session Shopify (App Bridge)
+    const sessionToken = req.headers['x-shopify-session-token'] || 
+                        req.headers['x-shopify-access-token'] ||
+                        req.headers.authorization?.replace('Bearer ', '');
 
-    next();
+    if (sessionToken) {
+      try {
+        // Obtenir l'instance Shopify API
+        const shopifyAPI = getShopifyAPI();
+        
+        // Décoder et vérifier le token de session Shopify
+        const session = await shopifyAPI.utils.decodeSessionToken(sessionToken);
+        if (session && session.shop === shopDomain) {
+          // Utiliser le token de session comme fallback
+          req.shopifySession = {
+            shop: shopDomain,
+            accessToken: sessionToken,
+            sessionToken: sessionToken
+          };
+          
+          logger.info(`✅ Session Shopify valide pour ${shopDomain}`);
+          return next();
+        }
+      } catch (tokenError) {
+        logger.warn('Token de session invalide:', tokenError);
+      }
+    }
+
+    // 5. Aucune authentification valide trouvée
+    logger.warn(`❌ Authentification manquante pour ${shopDomain}`);
+    return res.status(401).json({
+      error: 'Authentication requise',
+      needsAuth: true,
+      shop: shopDomain,
+      message: 'Veuillez installer ou reconnecter l\'application',
+      redirectUrl: `/api/auth/install?shop=${shopDomain}`,
+      allShops: tokenStore.listShops()
+    });
+
   } catch (error) {
-    logger.error('Erreur d\'authentification Shopify:', error);
-    return res.status(500).json({ 
-      error: ERROR_MESSAGES.UNKNOWN_ERROR,
-      message: 'Erreur lors de l\'authentification Shopify' 
+    logger.error('Erreur dans shopifyAuth middleware:', error);
+    return res.status(500).json({
+      error: 'Erreur d\'authentification',
+      message: error.message
     });
   }
 };
