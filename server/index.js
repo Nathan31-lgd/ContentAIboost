@@ -123,10 +123,11 @@ const initializeApp = async () => {
     });
 
     // --- Frontend Serving ---
-    const staticPath =
-      process.env.NODE_ENV === 'production'
-        ? path.join(__dirname, '..', 'client', 'dist')
-        : path.join(__dirname, '..', 'client');
+    const staticPath = process.env.NODE_ENV === 'production' 
+      ? path.join(process.cwd(), 'dist', 'client')  // Render build structure
+      : path.join(__dirname, '..', 'client');
+    
+    logger.info(`📁 Serving static files from: ${staticPath}`);
     
     app.use(express.static(staticPath, { index: false }));
 
