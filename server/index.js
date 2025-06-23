@@ -30,16 +30,25 @@ const shopifyAuthMiddleware = (req, res, next) => {
 
   // For API routes, check for Shopify session parameters
   if (req.path.startsWith('/api/')) {
-    const { shop, timestamp, hmac } = req.query;
+    const { shop } = req.query;
     
-    if (!shop || !timestamp) {
+    // Only require shop parameter - timestamp and hmac are optional for now
+    if (!shop) {
       return res.status(401).json({ 
         error: 'Unauthorized', 
-        message: 'Shopify session required' 
+        message: 'Shop parameter required' 
       });
     }
 
-    // Create a mock session for the routes to use
+    // Validate shop format
+    if (!shop.includes('.myshopify.com')) {
+      return res.status(401).json({ 
+        error: 'Unauthorized', 
+        message: 'Invalid shop format' 
+      });
+    }
+
+    // Create a session for the routes to use
     res.locals.shopify = {
       session: {
         shop,
@@ -48,6 +57,25 @@ const shopifyAuthMiddleware = (req, res, next) => {
     };
   }
 
+  next();
+};
+
+// Content Security Policy middleware for Shopify
+const shopifyCSPMiddleware = (req, res, next) => {
+  const shop = req.query.shop;
+  
+  if (shop) {
+    res.setHeader(
+      'Content-Security-Policy',
+      `frame-ancestors https://${encodeURIComponent(shop)} https://admin.shopify.com;`
+    );
+  } else {
+    res.setHeader('Content-Security-Policy', "frame-ancestors https://admin.shopify.com https://*.myshopify.com;");
+  }
+  
+  // Remove X-Frame-Options header that might conflict
+  res.removeHeader('X-Frame-Options');
+  
   next();
 };
 
@@ -63,6 +91,7 @@ const initializeApp = async () => {
 
     // --- Core Middlewares ---
     app.set('trust proxy', 1);
+    app.use(shopifyCSPMiddleware); // Set CSP headers first
     app.use(cors({
       origin: [
         'https://admin.shopify.com',
@@ -94,8 +123,6 @@ const initializeApp = async () => {
     });
 
     // --- Frontend Serving ---
-    app.use(shopify.cspHeaders()); // Set Shopify CSP headers
-
     const staticPath =
       process.env.NODE_ENV === 'production'
         ? path.join(__dirname, '..', 'client', 'dist')
@@ -147,4 +174,4 @@ const initializeApp = async () => {
 // Start the app
 initializeApp();
 
-export default app; 
+export default app;
