@@ -3,54 +3,39 @@ import { persist } from 'zustand/middleware';
 
 export const useAuthStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       // État
       token: null,
       user: null,
       isAuthenticated: false,
 
       // Actions
-      setToken: (token) => {
-        set({ 
-          token, 
-          isAuthenticated: !!token 
-        });
-        localStorage.setItem('auth_token', token);
-      },
+      setToken: (token) => set({ 
+        token, 
+        isAuthenticated: !!token 
+      }),
 
-      setUser: (user) => {
-        set({ user });
-      },
+      setUser: (user) => set({ 
+        user 
+      }),
 
-      clearToken: () => {
-        set({ 
-          token: null, 
-          user: null, 
-          isAuthenticated: false 
-        });
-        localStorage.removeItem('auth_token');
-      },
+      clearToken: () => set({ 
+        token: null, 
+        user: null,
+        isAuthenticated: false 
+      }),
 
-      logout: () => {
-        const { token } = get();
-        if (token) {
-          // Appeler l'API de déconnexion
-          fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ shop: get().user?.shop })
-          }).catch(console.error);
-        }
-        
-        set({ 
-          token: null, 
-          user: null, 
-          isAuthenticated: false 
-        });
-      },
+      login: (token, user) => set({
+        token,
+        user,
+        isAuthenticated: true,
+      }),
+
+      logout: () => set({
+        token: null,
+        user: null,
+        isAuthenticated: false,
+      }),
 
       // Initialiser le token depuis localStorage au démarrage
       initializeAuth: () => {
@@ -66,11 +51,7 @@ export const useAuthStore = create(
       getIsAuthenticated: () => get().isAuthenticated,
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({ 
-        token: state.token,
-        isAuthenticated: state.isAuthenticated 
-      }),
+      name: 'contentaiboost-auth',
     }
   )
 ); 

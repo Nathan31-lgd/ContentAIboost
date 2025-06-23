@@ -25,6 +25,7 @@ model Shop {
 
   apiKeys       ApiKey[]
   optimizations Optimization[]
+  products      Product[]
 }
 
 model ApiKey {
@@ -51,4 +52,29 @@ model Optimization {
 
   shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
   shopId Int
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  shopifyId        String
+  shopDomain       String
+  title            String
+  description      String   @default("")
+  handle           String
+  status           String
+  imageUrl         String?
+  price            String   @default("0")
+  seoTitle         String
+  seoDescription   String
+  seoScore         Int      @default(0)
+  shopifyUpdatedAt DateTime
+  lastSyncedAt     DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  shop   Shop @relation(fields: [shopDomain], references: [shopifyDomain], onDelete: Cascade)
+
+  @@unique([shopifyId, shopDomain])
+  @@index([shopDomain])
+  @@index([seoScore])
 }

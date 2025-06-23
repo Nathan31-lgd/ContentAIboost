@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { logger } from './utils/logger.js';
 
 // --- Configuration ---
 dotenv.config();
@@ -20,23 +21,25 @@ console.log('🚀 Initialisation du serveur ContentAIBoost');
 // --- Middlewares généraux ---
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://admin.shopify.com',
+    'https://*.myshopify.com',
+    'https://contentboostai.myshopify.com',
+    process.env.SHOPIFY_APP_URL,
+    process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : false
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-shopify-shop-domain'],
+}));
 app.use(compression());
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.shopify.com", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.shopify.com", "https://unpkg.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://api.shopify.com", "https://*.myshopify.com"],
-      frameAncestors: ["'self'", "https://admin.shopify.com", "https://*.myshopify.com"],
-      childSrc: ["'self'", "blob:"],
-      workerSrc: ["'self'", "blob:"]
-    }
-  }
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // --- Logging des requêtes ---
 app.use((req, res, next) => {
@@ -402,11 +405,45 @@ app.use((err, req, res, next) => {
   });
 });
 
-// --- Démarrage du serveur ---
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 ContentAIBoost démarré sur le port ${PORT}`);
-  console.log(`📊 Mode: ${process.env.NODE_ENV}`);
-  console.log(`🔗 URL: ${process.env.SHOPIFY_APP_URL}`);
-});
+// --- Initialisation ---
+const initializeApp = async () => {
+  try {
+    logger.info('🚀 Démarrage du serveur...');
+
+    // Initialiser Shopify si les variables d'environnement sont définies
+    if (process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET) {
+      try {
+        initializeShopify();
+        
+        // Initialiser le service Shopify
+        const shopifyService = await import('./services/shopifyService.js');
+        await shopifyService.default.initialize();
+        
+        logger.info('✅ Shopify API et service initialisés');
+      } catch (shopifyError) {
+        logger.error('⚠️ Erreur Shopify (non critique):', shopifyError.message);
+      }
+    } else {
+      logger.warn('⚠️ Variables Shopify manquantes - fonctionnalités Shopify désactivées');
+    }
+
+    // --- Démarrage du serveur ---
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`✅ Serveur démarré sur http://0.0.0.0:${PORT}`);
+      logger.info(`📍 Environnement: ${process.env.NODE_ENV || 'development'}`);
+      if (process.env.SHOPIFY_APP_URL) {
+        logger.info(`🔗 URL de l'app: ${process.env.SHOPIFY_APP_URL}`);
+      }
+    });
+
+    return app;
+  } catch (error) {
+    console.error('[INIT ERROR]', error);
+    process.exit(1);
+  }
+};
+
+// Démarrer l'application
+initializeApp();
 
 export default app; 

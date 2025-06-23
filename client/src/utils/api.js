@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 
 // Configuration de base
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Créer une instance axios avec configuration de base
 const apiClient = axios.create({
@@ -12,6 +12,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Ajouter withCredentials pour gérer les cookies de session
+  withCredentials: true,
 });
 
 // Intercepteur pour ajouter le token d'authentification
