@@ -10,33 +10,36 @@ import { AIProviderTypes } from '../../shared/types/index.js';
 
 const router = express.Router();
 
-// Test d'une clé API IA
-router.post('/test-key', async (req, res) => {
-  try {
-    const { provider, apiKey } = req.body;
+// Valider une clé API IA
+router.post('/validate-key', asyncHandler(async (req, res) => {
+  const { provider, apiKey } = req.body;
 
-    if (!provider || !apiKey) {
-      return res.status(400).json({
-        error: 'Paramètres manquants',
-        message: 'Le fournisseur et la clé API sont requis'
-      });
-    }
-
-    // TODO: Implémenter la validation des clés API
-    logger.info(`Test de clé API ${provider}`);
-
-    res.json({
-      valid: true,
-      provider,
-      message: 'Clé API valide'
-    });
-  } catch (error) {
-    logger.error('Erreur lors du test de la clé API:', error);
-    res.status(500).json({
-      error: 'Erreur lors du test de la clé API'
+  if (!provider || !apiKey) {
+    return res.status(400).json({
+      error: 'Paramètres manquants',
+      message: 'Le fournisseur et la clé API sont requis'
     });
   }
-});
+  
+  if (!Object.values(AIProviderTypes).includes(provider)) {
+    return res.status(400).json({ error: 'Fournisseur IA non valide' });
+  }
+
+  try {
+    const isValid = await aiService.validateApiKey(provider, apiKey);
+    if (isValid) {
+      res.json({ valid: true, message: 'Clé API valide' });
+    } else {
+      res.status(400).json({ valid: false, message: 'Clé API invalide' });
+    }
+  } catch (error) {
+    logger.error(`Erreur de validation de la clé API pour ${provider}:`, error.message);
+    res.status(400).json({
+      valid: false,
+      message: error.message || 'La clé API est incorrecte ou le service est indisponible.'
+    });
+  }
+}));
 
 // Analyser du contenu avec l'IA
 router.post('/analyze', checkSubscriptionLimits('optimization'), checkAIApiKey('openai'), asyncHandler(async (req, res) => {
