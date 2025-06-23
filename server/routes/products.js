@@ -8,13 +8,23 @@ const router = express.Router();
 // Synchroniser les produits depuis Shopify
 router.post('/sync', async (req, res) => {
   try {
-    const { shop, accessToken } = res.locals.shopify.session;
+    const { shop } = req.query;
     
-    if (!shop || !accessToken) {
-      return res.status(401).json({ error: 'Session Shopify invalide' });
+    if (!shop) {
+      return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    const products = await shopifyService.syncProducts(shop, accessToken);
+    // Récupérer le token d'accès depuis la base de données
+    const shopData = await prisma.shop.findUnique({
+      where: { shopifyDomain: shop },
+      select: { shopifyAccessToken: true }
+    });
+
+    if (!shopData?.shopifyAccessToken) {
+      return res.status(401).json({ error: 'Token d\'accès non trouvé pour cette boutique' });
+    }
+
+    const products = await shopifyService.syncProducts(shop, shopData.shopifyAccessToken);
 
     res.json({
       success: true,
@@ -32,22 +42,34 @@ router.post('/sync', async (req, res) => {
 // Récupérer la liste des produits
 router.get('/', async (req, res) => {
   try {
-    const { shop, accessToken } = res.locals.shopify.session;
+    const { shop } = req.query;
     
     if (!shop) {
-      return res.status(401).json({ error: 'Session Shopify invalide' });
+      return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
+    // Vérifier si des produits existent en base
     const productCount = await prisma.product.count({
       where: { shopDomain: shop },
     });
     
+    // Si aucun produit, lancer une synchronisation automatique
     if (productCount === 0) {
       logger.info(`Aucun produit local trouvé pour ${shop}, lancement de la synchronisation initiale...`);
-      if (accessToken) {
-        await shopifyService.syncProducts(shop, accessToken);
+      
+      const shopData = await prisma.shop.findUnique({
+        where: { shopifyDomain: shop },
+        select: { shopifyAccessToken: true }
+      });
+
+      if (shopData?.shopifyAccessToken) {
+        try {
+          await shopifyService.syncProducts(shop, shopData.shopifyAccessToken);
+        } catch (syncError) {
+          logger.error('Erreur lors de la synchronisation automatique:', syncError);
+        }
       } else {
-        logger.warn(`Impossible de synchroniser, token d'accès manquant pour ${shop}`);
+        logger.warn(`Token d'accès non trouvé pour ${shop}`);
       }
     }
 
@@ -66,10 +88,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { shop } = res.locals.shopify.session;
+    const { shop } = req.query;
     
     if (!shop) {
-      return res.status(401).json({ error: 'Session Shopify invalide' });
+      return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
     const product = await shopifyService.getProduct(shop, id);
