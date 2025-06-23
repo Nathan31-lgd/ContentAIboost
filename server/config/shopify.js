@@ -13,13 +13,9 @@ export const initializeShopify = () => {
       apiKey: process.env.SHOPIFY_API_KEY,
       apiSecretKey: process.env.SHOPIFY_API_SECRET,
       scopes: process.env.SHOPIFY_SCOPES?.split(',') || [
-        // Produits - lecture et écriture
+        // Produits ET Collections - lecture et écriture (Collections incluses dans products)
         'read_products',
         'write_products',
-        
-        // Collections - lecture et écriture
-        'read_collections',
-        'write_collections',
         
         // Contenu et blogs - lecture et écriture
         'read_content',
