@@ -100,7 +100,3 @@ Thumbs.db
 
 # Shopify CLI generated files
 .shopify/
-
-# ngrok files (if any)
-ngrok
-*.ngrok

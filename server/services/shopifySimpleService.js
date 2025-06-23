@@ -191,6 +191,181 @@ class ShopifySimpleService {
       throw error;
     }
   }
+
+  // Récupérer les blogs directement depuis l'API Shopify
+  async getBlogsFromShopify(shop, accessToken) {
+    try {
+      const url = `https://${shop}/admin/api/2024-01/blogs.json`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API Shopify: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Transformer les données pour correspondre au format attendu
+      const blogs = data.blogs.map(blog => ({
+        id: blog.id.toString(),
+        title: blog.title,
+        handle: blog.handle,
+        created_at: blog.created_at,
+        updated_at: blog.updated_at,
+        commentable: blog.commentable,
+        feedburner: blog.feedburner,
+        feedburner_location: blog.feedburner_location,
+        tags: blog.tags,
+        template_suffix: blog.template_suffix
+      }));
+
+      logger.info(`✅ ${blogs.length} blogs récupérés depuis Shopify`);
+      return blogs;
+
+    } catch (error) {
+      logger.error('Erreur lors de la récupération des blogs Shopify:', error);
+      throw error;
+    }
+  }
+
+  // Récupérer les articles d'un blog
+  async getBlogArticlesFromShopify(shop, accessToken, blogId) {
+    try {
+      const url = `https://${shop}/admin/api/2024-01/blogs/${blogId}/articles.json?limit=50`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API Shopify: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Transformer les données pour correspondre au format attendu
+      const articles = data.articles.map(article => ({
+        id: article.id.toString(),
+        title: article.title,
+        author: article.author,
+        blog_id: article.blog_id.toString(),
+        body_html: article.body_html,
+        created_at: article.created_at,
+        handle: article.handle,
+        published_at: article.published_at,
+        summary: article.summary,
+        tags: article.tags,
+        updated_at: article.updated_at,
+        user_id: article.user_id,
+        image: article.image?.src || null,
+        seo_score: this.calculateBasicSEOScore({
+          title: article.title,
+          body_html: article.body_html,
+          summary: article.summary,
+          image: article.image
+        }),
+        optimized: false
+      }));
+
+      logger.info(`✅ ${articles.length} articles récupérés depuis Shopify pour le blog ${blogId}`);
+      return articles;
+
+    } catch (error) {
+      logger.error('Erreur lors de la récupération des articles de blog Shopify:', error);
+      throw error;
+    }
+  }
+
+  // Méthode pour récupérer et formater les blogs
+  async getBlogs(shop, accessToken, options = {}) {
+    try {
+      // Récupérer tous les blogs depuis Shopify
+      const blogs = await this.getBlogsFromShopify(shop, accessToken);
+      
+      return {
+        blogs,
+        total: blogs.length,
+        page: 1,
+        limit: 50,
+        totalPages: 1
+      };
+      
+    } catch (error) {
+      logger.error('Erreur lors du traitement des blogs:', error);
+      throw error;
+    }
+  }
+
+  // Méthode pour récupérer les articles d'un blog avec options
+  async getBlogArticles(shop, accessToken, blogId, options = {}) {
+    try {
+      // Récupérer tous les articles depuis Shopify
+      const articles = await this.getBlogArticlesFromShopify(shop, accessToken, blogId);
+      
+      // Appliquer les filtres
+      let filteredArticles = [...articles];
+      
+      // Filtre de recherche
+      if (options.search) {
+        const searchLower = options.search.toLowerCase();
+        filteredArticles = filteredArticles.filter(article =>
+          article.title.toLowerCase().includes(searchLower) ||
+          article.body_html.toLowerCase().includes(searchLower) ||
+          article.summary?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      // Tri
+      const sortField = options.sort || 'updated_at';
+      const sortDirection = options.direction || 'desc';
+      
+      filteredArticles.sort((a, b) => {
+        let comparison = 0;
+        switch (sortField) {
+          case 'seo_score':
+            comparison = a.seo_score - b.seo_score;
+            break;
+          case 'created_at':
+            comparison = new Date(a.created_at) - new Date(b.created_at);
+            break;
+          case 'published_at':
+            comparison = new Date(a.published_at || a.created_at) - new Date(b.published_at || b.created_at);
+            break;
+          default:
+            comparison = new Date(a.updated_at) - new Date(b.updated_at);
+            break;
+        }
+        return sortDirection === 'desc' ? -comparison : comparison;
+      });
+      
+      // Pagination
+      const page = parseInt(options.page) || 1;
+      const limit = parseInt(options.limit) || 20;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedArticles = filteredArticles.slice(startIndex, endIndex);
+      
+      return {
+        articles: paginatedArticles,
+        total: filteredArticles.length,
+        page,
+        limit,
+        totalPages: Math.ceil(filteredArticles.length / limit)
+      };
+      
+    } catch (error) {
+      logger.error('Erreur lors du traitement des articles de blog:', error);
+      throw error;
+    }
+  }
 }
 
 export default new ShopifySimpleService(); 

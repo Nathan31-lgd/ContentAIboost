@@ -49,16 +49,19 @@ export default function Products() {
       });
       setProducts(response.products || []);
       
-      // Afficher un message si on utilise les données de test
-      if (response.source === 'test' && response.needsAuth) {
-        toast('Authentification requise pour voir vos vrais produits.', {
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits:', error);
+      
+      // Si l'erreur indique un problème d'authentification
+      if (error.status === 401 || (error.needsAuth && error.products)) {
+        toast('Veuillez connecter votre boutique Shopify pour voir vos produits.', {
           icon: '🔐',
           duration: 4000,
         });
+        setProducts([]);
+      } else {
+        toast.error('Impossible de charger les produits');
       }
-    } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
-      toast.error('Impossible de charger les produits');
     } finally {
       setLoading(false);
     }
@@ -242,8 +245,12 @@ export default function Products() {
               <EmptyState
                 heading="Aucun produit trouvé"
                 action={{
-                  content: 'Connecter ma boutique',
-                  onAction: () => navigate('/auth'),
+                  content: 'Installer l\'application',
+                  onAction: () => {
+                    const currentUrl = window.location.origin;
+                    const shopParam = new URLSearchParams(window.location.search).get('shop') || 'votre-boutique.myshopify.com';
+                    window.location.href = `${currentUrl}/api/auth/install?shop=${shopParam}`;
+                  },
                 }}
                 secondaryAction={{
                   content: 'Synchroniser',
@@ -251,7 +258,7 @@ export default function Products() {
                 }}
                 image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
               >
-                <p>Connectez votre boutique Shopify pour voir vos produits et commencer l'optimisation SEO.</p>
+                <p>Installez l'application dans votre boutique Shopify pour accéder à vos produits et commencer l'optimisation SEO.</p>
               </EmptyState>
             </Card>
           </Layout.Section>
