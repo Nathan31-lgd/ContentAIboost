@@ -15,7 +15,15 @@ export const useShopify = () => {
 };
 
 export const ShopifyProvider = ({ children }) => {
-  const app = useAppBridge();
+  let app = null;
+  
+  // Essayer d'obtenir l'app bridge, mais ne pas échouer si ce n'est pas disponible
+  try {
+    app = useAppBridge();
+  } catch (error) {
+    console.warn('App Bridge non disponible:', error.message);
+  }
+
   const { setToken, setUser } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState(null);
@@ -23,20 +31,24 @@ export const ShopifyProvider = ({ children }) => {
   useEffect(() => {
     const initializeSession = async () => {
       try {
-        // Récupérer le token de session Shopify
-        const token = await getSessionToken(app);
+        // Extraire les informations de la boutique depuis l'URL
+        const params = new URLSearchParams(window.location.search);
+        const shopDomain = params.get('shop');
         
-        if (token) {
-          // Stocker le token dans le store
-          setToken(token);
-          
-          // Extraire les informations de la boutique depuis l'URL
-          const params = new URLSearchParams(window.location.search);
-          const shopDomain = params.get('shop');
-          
-          if (shopDomain) {
-            setShop(shopDomain);
-            setUser({ shop: shopDomain });
+        if (shopDomain) {
+          setShop(shopDomain);
+          setUser({ shop: shopDomain });
+        }
+
+        // Seulement essayer d'obtenir le token si App Bridge est disponible
+        if (app) {
+          try {
+            const token = await getSessionToken(app);
+            if (token) {
+              setToken(token);
+            }
+          } catch (tokenError) {
+            console.warn('Impossible d\'obtenir le token de session:', tokenError.message);
           }
         }
       } catch (error) {
@@ -48,25 +60,28 @@ export const ShopifyProvider = ({ children }) => {
 
     initializeSession();
     
-    // Rafraîchir le token toutes les 50 minutes
-    const interval = setInterval(async () => {
-      try {
-        const token = await getSessionToken(app);
-        if (token) {
-          setToken(token);
+    // Seulement configurer le rafraîchissement du token si App Bridge est disponible
+    if (app) {
+      const interval = setInterval(async () => {
+        try {
+          const token = await getSessionToken(app);
+          if (token) {
+            setToken(token);
+          }
+        } catch (error) {
+          console.warn('Erreur lors du rafraîchissement du token:', error.message);
         }
-      } catch (error) {
-        console.error('Erreur lors du rafraîchissement du token:', error);
-      }
-    }, 50 * 60 * 1000); // 50 minutes
+      }, 50 * 60 * 1000); // 50 minutes
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }
   }, [app, setToken, setUser]);
 
   const value = {
     app,
     shop,
     loading,
+    isAppBridgeAvailable: !!app,
   };
 
   return (
