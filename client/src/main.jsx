@@ -1,5 +1,3 @@
-console.log('[main.jsx] Starting...');
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -9,12 +7,8 @@ import frTranslations from '@shopify/polaris/locales/fr.json';
 import App from './App';
 import './styles/index.css';
 
-console.log('[main.jsx] Imports loaded successfully');
-
 try {
   const rootElement = document.getElementById('root');
-  console.log('[main.jsx] Root element:', rootElement);
-  
   if (!rootElement) {
     throw new Error('Root element not found');
   }
@@ -36,8 +30,6 @@ try {
     forceRedirect: true,
   };
 
-  console.log('[main.jsx] Rendering React app with App Bridge config:', appBridgeConfig);
-  
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <BrowserRouter>
@@ -49,9 +41,7 @@ try {
       </BrowserRouter>
     </React.StrictMode>
   );
-  
-  console.log('[main.jsx] React app rendered successfully');
-  
+
 } catch (error) {
   console.error('[main.jsx] Fatal error:', error);
   document.getElementById('root').innerHTML = `
