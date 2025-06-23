@@ -1,6 +1,9 @@
-import { shopifyApi, LATEST_API_VERSION } from '@shopify/shopify-api';
+import { shopifyApi } from '@shopify/shopify-api';
 import '@shopify/shopify-api/adapters/node';
 import { logger } from '../utils/logger.js';
+
+// Utiliser la version 2025-04 (la plus récente)
+const API_VERSION = '2025-04';
 
 let shopify;
 
@@ -27,7 +30,7 @@ export const initializeShopify = () => {
         'write_themes'
       ],
       hostName: process.env.SHOPIFY_APP_URL?.replace('https://', '').replace('http://', '') || 'localhost:3000',
-      apiVersion: LATEST_API_VERSION,
+      apiVersion: API_VERSION, // 2025-04
       isEmbeddedApp: true,
       // Configuration pour le développement
       ...(process.env.NODE_ENV === 'development' && {
@@ -36,7 +39,7 @@ export const initializeShopify = () => {
       })
     });
 
-    logger.info('✅ Shopify API initialisée avec succès');
+    logger.info(`✅ Shopify API initialisée avec succès (version ${API_VERSION})`);
   } catch (error) {
     logger.error('❌ Erreur lors de l\'initialisation de Shopify:', error);
     throw error;

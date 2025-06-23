@@ -6,7 +6,7 @@ class ShopifySimpleService {
   async getProductsFromShopify(shop, accessToken, options = {}) {
     try {
       const limit = Math.min(parseInt(options.limit) || 50, 250);
-      const url = `https://${shop}/admin/api/2025-01/products.json?limit=${limit}`;
+      const url = `https://${shop}/admin/api/2025-04/products.json?limit=${limit}`;
       
       const response = await fetch(url, {
         headers: {
@@ -35,7 +35,7 @@ class ShopifySimpleService {
         updated_at: product.updated_at,
       }));
 
-      logger.info(`✅ ${products.length} produits récupérés depuis Shopify (API 2025-01)`);
+      logger.info(`✅ ${products.length} produits récupérés depuis Shopify (API 2025-04)`);
       return products;
 
     } catch (error) {
@@ -153,7 +153,7 @@ class ShopifySimpleService {
   // Récupérer un produit spécifique
   async getProduct(shop, accessToken, productId) {
     try {
-      const url = `https://${shop}/admin/api/2024-01/products/${productId}.json`;
+      const url = `https://${shop}/admin/api/2025-04/products/${productId}.json`;
       
       const response = await fetch(url, {
         headers: {
@@ -196,7 +196,7 @@ class ShopifySimpleService {
   // Récupérer les blogs directement depuis l'API Shopify
   async getBlogsFromShopify(shop, accessToken) {
     try {
-      const url = `https://${shop}/admin/api/2024-01/blogs.json`;
+      const url = `https://${shop}/admin/api/2025-04/blogs.json`;
       
       const response = await fetch(url, {
         headers: {
@@ -237,7 +237,7 @@ class ShopifySimpleService {
   // Récupérer les articles d'un blog
   async getBlogArticlesFromShopify(shop, accessToken, blogId) {
     try {
-      const url = `https://${shop}/admin/api/2024-01/blogs/${blogId}/articles.json?limit=50`;
+      const url = `https://${shop}/admin/api/2025-04/blogs/${blogId}/articles.json?limit=50`;
       
       const response = await fetch(url, {
         headers: {
@@ -371,7 +371,7 @@ class ShopifySimpleService {
   // Récupérer un produit spécifique par son ID
   async getProductById(shop, accessToken, productId) {
     try {
-      const url = `https://${shop}/admin/api/2025-01/products/${productId}.json`;
+      const url = `https://${shop}/admin/api/2025-04/products/${productId}.json`;
       
       const response = await fetch(url, {
         headers: {
