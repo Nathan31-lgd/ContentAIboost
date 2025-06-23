@@ -5,6 +5,60 @@ import prisma from '../config/prisma.js';
 
 const router = express.Router();
 
+// Données de test pour les produits
+const mockProducts = [
+  {
+    id: '1',
+    title: 'T-shirt Premium',
+    description: 'Un t-shirt de qualité supérieure en coton bio',
+    price: '29.99€',
+    image: 'https://via.placeholder.com/150',
+    seo_score: 75,
+    status: 'active',
+    optimized: false,
+  },
+  {
+    id: '2', 
+    title: 'Jean Slim Fit',
+    description: 'Jean moderne avec coupe ajustée',
+    price: '79.99€',
+    image: 'https://via.placeholder.com/150',
+    seo_score: 85,
+    status: 'active',
+    optimized: true,
+  },
+  {
+    id: '3',
+    title: 'Sneakers Urbaines',
+    description: 'Chaussures confortables pour la ville',
+    price: '120.00€',
+    image: 'https://via.placeholder.com/150',
+    seo_score: 60,
+    status: 'active',
+    optimized: false,
+  },
+  {
+    id: '4',
+    title: 'Veste en Cuir',
+    description: 'Veste élégante en cuir véritable',
+    price: '199.99€',
+    image: 'https://via.placeholder.com/150',
+    seo_score: 90,
+    status: 'active',
+    optimized: true,
+  },
+  {
+    id: '5',
+    title: 'Montre Classique',
+    description: 'Montre intemporelle avec bracelet en acier',
+    price: '299.00€',
+    image: 'https://via.placeholder.com/150',
+    seo_score: 45,
+    status: 'active',
+    optimized: false,
+  },
+];
+
 // Synchroniser les produits depuis Shopify
 router.post('/sync', async (req, res) => {
   try {
@@ -14,22 +68,13 @@ router.post('/sync', async (req, res) => {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    // Récupérer le token d'accès depuis la base de données
-    const shopData = await prisma.shop.findUnique({
-      where: { shopifyDomain: shop },
-      select: { shopifyAccessToken: true }
-    });
-
-    if (!shopData?.shopifyAccessToken) {
-      return res.status(401).json({ error: 'Token d\'accès non trouvé pour cette boutique' });
-    }
-
-    const products = await shopifyService.syncProducts(shop, shopData.shopifyAccessToken);
-
+    logger.info(`Synchronisation demandée pour ${shop}`);
+    
+    // Pour l'instant, retourner un succès avec les données de test
     res.json({
       success: true,
-      message: `${products.length} produits synchronisés`,
-      count: products.length
+      message: `${mockProducts.length} produits synchronisés (mode test)`,
+      count: mockProducts.length
     });
   } catch (error) {
     logger.error('Erreur lors de la synchronisation des produits:', error);
@@ -48,34 +93,53 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    // Vérifier si des produits existent en base
-    const productCount = await prisma.product.count({
-      where: { shopDomain: shop },
-    });
+    logger.info(`Récupération des produits pour ${shop}`);
     
-    // Si aucun produit, lancer une synchronisation automatique
-    if (productCount === 0) {
-      logger.info(`Aucun produit local trouvé pour ${shop}, lancement de la synchronisation initiale...`);
-      
-      const shopData = await prisma.shop.findUnique({
-        where: { shopifyDomain: shop },
-        select: { shopifyAccessToken: true }
-      });
-
-      if (shopData?.shopifyAccessToken) {
-        try {
-          await shopifyService.syncProducts(shop, shopData.shopifyAccessToken);
-        } catch (syncError) {
-          logger.error('Erreur lors de la synchronisation automatique:', syncError);
-        }
-      } else {
-        logger.warn(`Token d'accès non trouvé pour ${shop}`);
+    // Filtrer les produits selon les paramètres de recherche
+    const { search = '', status = '', sort = 'title' } = req.query;
+    
+    let filteredProducts = [...mockProducts];
+    
+    // Appliquer le filtre de recherche
+    if (search) {
+      filteredProducts = filteredProducts.filter(product =>
+        product.title.toLowerCase().includes(search.toLowerCase()) ||
+        product.description.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // Appliquer le filtre de statut
+    if (status) {
+      const statusFilters = status.split(',');
+      if (statusFilters.includes('optimized')) {
+        filteredProducts = filteredProducts.filter(product => product.optimized);
+      }
+      if (statusFilters.includes('not_optimized')) {
+        filteredProducts = filteredProducts.filter(product => !product.optimized);
       }
     }
-
-    const products = await shopifyService.getProducts(shop, req.query);
     
-    res.json(products);
+    // Appliquer le tri
+    filteredProducts.sort((a, b) => {
+      switch (sort) {
+        case 'price':
+          return parseFloat(a.price) - parseFloat(b.price);
+        case 'seo_score':
+          return b.seo_score - a.seo_score;
+        default:
+          return a.title.localeCompare(b.title);
+      }
+    });
+    
+    const result = {
+      products: filteredProducts,
+      total: filteredProducts.length,
+      page: 1,
+      limit: 20,
+    };
+    
+    logger.info(`Retour de ${filteredProducts.length} produits`);
+    res.json(result);
   } catch (error) {
     logger.error('Erreur lors de la récupération des produits:', error);
     res.status(500).json({
@@ -94,10 +158,12 @@ router.get('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    const product = await shopifyService.getProduct(shop, id);
+    const product = mockProducts.find(p => p.id === id);
     if (!product) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
+    
+    logger.info(`Produit ${id} trouvé pour ${shop}`);
     res.json(product);
   } catch (error) {
     logger.error(`Erreur lors de la récupération du produit ${req.params.id}:`, error);
