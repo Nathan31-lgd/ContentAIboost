@@ -26,11 +26,14 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.shopify.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.shopify.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.shopify.com"],
-      frameAncestors: ["'self'", "https://admin.shopify.com", "https://*.myshopify.com"]
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.shopify.com", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.shopify.com", "https://unpkg.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://api.shopify.com", "https://*.myshopify.com"],
+      frameAncestors: ["'self'", "https://admin.shopify.com", "https://*.myshopify.com"],
+      childSrc: ["'self'", "blob:"],
+      workerSrc: ["'self'", "blob:"]
     }
   }
 }));
