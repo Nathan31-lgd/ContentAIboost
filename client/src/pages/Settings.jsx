@@ -1,234 +1,27 @@
-import React, { useState } from 'react';
-import {
-  Page,
-  Layout,
-  Card,
-  FormLayout,
-  TextField,
-  Select,
-  Checkbox,
-  Button,
-  Banner,
-  Badge,
-  Icon,
-  TextContainer
-} from '@shopify/polaris';
-// Icônes temporairement désactivées pour le build
-import toast from 'react-hot-toast';
+import React from 'react';
+import { Page, Card, Layout, TextField, Button, FormLayout } from '@shopify/polaris';
 
 export default function Settings() {
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState({
-    openaiKey: '',
-    claudeKey: '',
-    geminiKey: '',
-    defaultAI: 'openai',
-    autoOptimize: false,
-    optimizeOnImport: false,
-    language: 'fr',
-    tone: 'professional'
-  });
-
-  const [apiStatus, setApiStatus] = useState({
-    openai: false,
-    claude: false,
-    gemini: false
-  });
-
-  const handleChange = (field) => (value) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
-  };
-
-  const testApiKey = async (provider) => {
-    setLoading(true);
-    try {
-      // Simuler le test de l'API
-      setTimeout(() => {
-        setApiStatus(prev => ({ ...prev, [provider]: true }));
-        toast.success(`${provider.toUpperCase()} API connectée avec succès !`);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      toast.error(`Erreur de connexion ${provider}`);
-      setLoading(false);
-    }
-  };
-
-  const saveSettings = async () => {
-    setLoading(true);
-    try {
-      // Simuler la sauvegarde
-      setTimeout(() => {
-        toast.success('Paramètres sauvegardés avec succès !');
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      toast.error('Erreur lors de la sauvegarde');
-      setLoading(false);
-    }
-  };
-
-  const AIProviderCard = ({ provider, title, description }) => (
-    <Card sectioned>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600' }}>{title}</h2>
-          {apiStatus[provider] ? (
-            <Badge status="success">✓ Connecté</Badge>
-          ) : (
-            <Badge status="critical">✗ Non configuré</Badge>
-          )}
-        </div>
-        
-        <TextContainer>
-          <p>{description}</p>
-        </TextContainer>
-        
-        <TextField
-          label="Clé API"
-          value={settings[`${provider}Key`]}
-          onChange={handleChange(`${provider}Key`)}
-          type="password"
-          autoComplete="off"
-          helpText={`Entrez votre clé API ${title}`}
-        />
-        
-        <Button
-          onClick={() => testApiKey(provider)}
-          loading={loading}
-          disabled={!settings[`${provider}Key`]}
-        >
-          Tester la connexion
-        </Button>
-      </div>
-    </Card>
-  );
-
   return (
-    <Page
-      title="Paramètres"
-      subtitle="Configurez ContentAIBoost selon vos besoins"
-      primaryAction={{
-        content: 'Sauvegarder',
-        onAction: saveSettings,
-        loading: loading
-      }}
-    >
+    <Page title="Paramètres">
       <Layout>
         <Layout.Section>
-          <Banner
-            title="Configuration requise"
-            status="warning"
-          >
-            <p>
-              Vous devez configurer au moins une API d'IA pour utiliser les fonctionnalités d'optimisation automatique.
-            </p>
-          </Banner>
-        </Layout.Section>
-
-        {/* Configuration des APIs */}
-        <Layout.Section>
-          <TextContainer>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>Configuration des APIs d'Intelligence Artificielle</h2>
-          </TextContainer>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <AIProviderCard
-              provider="openai"
-              title="OpenAI (GPT-4)"
-              description="Utilisez GPT-4 pour des optimisations de haute qualité avec une compréhension contextuelle avancée."
-            />
-            
-            <AIProviderCard
-              provider="claude"
-              title="Anthropic Claude"
-              description="Claude offre des réponses nuancées et créatives, idéal pour du contenu engageant."
-            />
-            
-            <AIProviderCard
-              provider="gemini"
-              title="Google Gemini"
-              description="Gemini Pro pour des optimisations rapides et efficaces avec l'IA de Google."
-            />
-          </div>
-        </Layout.Section>
-
-        {/* Préférences d'optimisation */}
-        <Layout.Section>
-          <Card title="Préférences d'optimisation" sectioned>
+          <Card sectioned>
             <FormLayout>
-              <Select
-                label="IA par défaut"
-                options={[
-                  { label: 'OpenAI GPT-4', value: 'openai' },
-                  { label: 'Anthropic Claude', value: 'claude' },
-                  { label: 'Google Gemini', value: 'gemini' }
-                ]}
-                value={settings.defaultAI}
-                onChange={handleChange('defaultAI')}
-                helpText="Choisissez l'IA à utiliser par défaut pour les optimisations"
+              <TextField
+                label="Clé API OpenAI"
+                type="password"
+                autoComplete="off"
               />
-              
-              <Select
-                label="Langue des optimisations"
-                options={[
-                  { label: 'Français', value: 'fr' },
-                  { label: 'English', value: 'en' },
-                  { label: 'Español', value: 'es' },
-                  { label: 'Deutsch', value: 'de' }
-                ]}
-                value={settings.language}
-                onChange={handleChange('language')}
+              <TextField
+                label="Langue par défaut"
+                value="Français"
               />
-              
-              <Select
-                label="Ton du contenu"
-                options={[
-                  { label: 'Professionnel', value: 'professional' },
-                  { label: 'Amical', value: 'friendly' },
-                  { label: 'Luxueux', value: 'luxury' },
-                  { label: 'Technique', value: 'technical' },
-                  { label: 'Décontracté', value: 'casual' }
-                ]}
-                value={settings.tone}
-                onChange={handleChange('tone')}
-                helpText="Le ton à adopter pour les descriptions générées"
-              />
+              <Button primary>Sauvegarder</Button>
             </FormLayout>
-          </Card>
-        </Layout.Section>
-
-        {/* Options automatiques */}
-        <Layout.Section secondary>
-          <Card title="Automatisation" sectioned>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <Checkbox
-                label="Optimisation automatique"
-                checked={settings.autoOptimize}
-                onChange={handleChange('autoOptimize')}
-                helpText="Active l'optimisation automatique en arrière-plan"
-              />
-              
-              <Checkbox
-                label="Optimiser lors de l'import"
-                checked={settings.optimizeOnImport}
-                onChange={handleChange('optimizeOnImport')}
-                helpText="Optimise automatiquement les nouveaux produits importés"
-              />
-            </div>
-          </Card>
-
-          <Card title="Informations" sectioned>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <TextContainer>
-                <p><strong>Version :</strong> 1.0.0</p>
-                <p><strong>Dernière mise à jour :</strong> 22 juin 2025</p>
-                <p><strong>Support :</strong> support@contentaiboost.com</p>
-              </TextContainer>
-            </div>
           </Card>
         </Layout.Section>
       </Layout>
     </Page>
   );
-}
+} 

@@ -164,10 +164,18 @@ app.get('/api/collections', (req, res) => {
 });
 
 // Servir les fichiers statiques
-const clientPath = path.join(__dirname, '../dist/client');
+// Sur Render, le working directory est à la racine du projet
+const clientPath = process.env.NODE_ENV === 'production' 
+  ? path.join(process.cwd(), 'dist/client')
+  : path.join(__dirname, '../dist/client');
+
+console.log(`[STATIC FILES] Serving from: ${clientPath}`);
+console.log(`[STATIC FILES] Current directory: ${process.cwd()}`);
+console.log(`[STATIC FILES] __dirname: ${__dirname}`);
+
 app.use(express.static(clientPath));
 
-// Route principale - Servir l'app React ou une page d'installation
+// Toutes les routes non-API doivent servir l'app React
 app.get('*', (req, res) => {
   const { shop, hmac } = req.query;
   
@@ -182,10 +190,14 @@ app.get('*', (req, res) => {
   if (shop && hmac && verifyShopifyHmac(req.query)) {
     const indexPath = path.join(clientPath, 'index.html');
     
+    console.log(`[SERVE] Attempting to serve React app from: ${indexPath}`);
+    console.log(`[SERVE] File exists check...`);
+    
     // Vérifier si le fichier existe
     res.sendFile(indexPath, (err) => {
       if (err) {
         console.error('[SERVE ERROR]', err);
+        console.error('[SERVE ERROR] Full path:', indexPath);
         // Fallback : servir une interface temporaire
         res.send(`
           <!DOCTYPE html>

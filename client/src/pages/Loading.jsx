@@ -1,27 +1,19 @@
 import React from 'react';
-import { Page, Layout, Card, Spinner } from '@shopify/polaris';
+import { Page, Card, Layout, Spinner } from '@shopify/polaris';
 
-const Loading = () => {
+export default function Loading() {
   return (
     <Page>
       <Layout>
         <Layout.Section>
           <Card sectioned>
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              padding: '60px 0'
-            }}>
+            <div style={{ textAlign: 'center', padding: '40px' }}>
               <Spinner size="large" />
-              <p style={{ marginTop: '20px', color: '#6d7175' }}>Chargement en cours...</p>
+              <p style={{ marginTop: '20px' }}>Chargement en cours...</p>
             </div>
           </Card>
         </Layout.Section>
       </Layout>
     </Page>
   );
-};
-
-export default Loading; 
+} 
