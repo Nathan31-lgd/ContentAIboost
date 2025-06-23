@@ -51,7 +51,7 @@ const initializeApp = async () => {
 
     // --- Shopify & API Routes ---
     app.use('/api/auth', authRoutes); // Auth routes are not protected
-    app.use('/api/*', shopify.auth.verify()); // All other API routes are protected
+    app.use('/api/*', shopify.validateAuthenticatedSession()); // All other API routes are protected
 
     // Register API routes
     app.use('/api/products', productRoutes);
