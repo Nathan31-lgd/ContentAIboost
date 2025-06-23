@@ -3,7 +3,7 @@ services:
     name: contentaiboost
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: ./build.sh
     startCommand: npm start
     envVars:
       - key: NODE_ENV
