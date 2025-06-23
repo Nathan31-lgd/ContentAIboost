@@ -51,10 +51,10 @@ router.get('/callback', async (req, res) => {
 
     const { access_token } = await accessTokenResponse.json();
 
-    // Stocker le token dans notre store en mémoire
-    tokenStore.setToken(shop, access_token);
+    // Stocker le token en BDD (PERMANENT)
+    await tokenStore.setToken(shop, access_token);
 
-    logger.info(`✅ Installation réussie pour la boutique: ${shop}`);
+    logger.info(`✅ Installation réussie et token persisté en BDD pour: ${shop}`);
 
     // Rediriger vers l'app dans l'admin Shopify
     const redirectUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}?shop=${shop}&host=${host}`;
@@ -99,7 +99,7 @@ router.get('/install', async (req, res) => {
 });
 
 // Route pour vérifier le statut d'authentification
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
   try {
     const { shop } = req.query;
     
@@ -107,11 +107,11 @@ router.get('/status', (req, res) => {
       return res.status(400).json({ error: 'Paramètre shop manquant' });
     }
 
-    const hasToken = tokenStore.hasValidToken(shop);
-    const allShops = tokenStore.listShops();
+    const hasToken = await tokenStore.hasValidToken(shop);
+    const allShops = await tokenStore.listShops();
     
     logger.info(`Statut d'authentification pour ${shop}: ${hasToken ? 'OK' : 'KO'}`);
-    logger.info(`Boutiques avec token: ${allShops.join(', ')}`);
+    logger.info(`Boutiques avec token en BDD: ${allShops.join(', ')}`);
     
     res.json({
       authenticated: hasToken,
@@ -135,8 +135,8 @@ router.post('/logout', async (req, res) => {
       });
     }
 
-    tokenStore.removeToken(shop);
-    logger.info(`🔓 Déconnexion réussie pour: ${shop}`);
+    await tokenStore.removeToken(shop);
+    logger.info(`🔓 Déconnexion réussie et token supprimé de la BDD pour: ${shop}`);
     
     res.json({
       message: 'Déconnexion réussie'
@@ -150,21 +150,22 @@ router.post('/logout', async (req, res) => {
 });
 
 // Route de debug pour vérifier les tokens
-router.get('/debug', (req, res) => {
+router.get('/debug', async (req, res) => {
   try {
     const { shop } = req.query;
     
-    const allShops = tokenStore.listShops();
+    const allShops = await tokenStore.listShops();
     const debugInfo = {
       requestedShop: shop,
       allShopsWithTokens: allShops,
-      hasTokenForShop: shop ? tokenStore.hasValidToken(shop) : false,
+      hasTokenForShop: shop ? await tokenStore.hasValidToken(shop) : false,
       timestamp: new Date().toISOString(),
       environment: {
         SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY ? '✅ Définie' : '❌ Manquante',
         SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET ? '✅ Définie' : '❌ Manquante',
         SHOPIFY_SCOPES: process.env.SHOPIFY_SCOPES || 'Non définie',
         SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 'Non définie',
+        DATABASE_URL: process.env.DATABASE_URL ? '✅ Connectée' : '❌ Manquante',
       }
     };
     

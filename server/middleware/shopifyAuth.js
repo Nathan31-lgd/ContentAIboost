@@ -19,15 +19,15 @@ export const shopifyAuth = async (req, res, next) => {
     const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
     const shopDomain = cleanShop.includes('.') ? cleanShop : `${cleanShop}.myshopify.com`;
 
-    // 3. Vérifier si on a un token d'accès stocké
-    const storedToken = tokenStore.getToken(shopDomain);
+    // 3. Vérifier si on a un token d'accès stocké en BDD (PERMANENT)
+    const storedToken = await tokenStore.getToken(shopDomain);
     if (storedToken) {
       req.shopifySession = {
         shop: shopDomain,
         accessToken: storedToken
       };
       
-      logger.info(`✅ Token d'accès trouvé pour ${shopDomain}`);
+      logger.info(`✅ Token BDD trouvé pour ${shopDomain}`);
       return next();
     }
 
@@ -61,13 +61,14 @@ export const shopifyAuth = async (req, res, next) => {
 
     // 5. Aucune authentification valide trouvée
     logger.warn(`❌ Authentification manquante pour ${shopDomain}`);
+    const allShops = await tokenStore.listShops();
     return res.status(401).json({
       error: 'Authentication requise',
       needsAuth: true,
       shop: shopDomain,
       message: 'Veuillez installer ou reconnecter l\'application',
       redirectUrl: `/api/auth/install?shop=${shopDomain}`,
-      allShops: tokenStore.listShops()
+      allShops: allShops
     });
 
   } catch (error) {
