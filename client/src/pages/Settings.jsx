@@ -8,82 +8,33 @@ import {
   Select,
   Button,
   Banner,
-  InlineStack,
-  Icon,
-  Spinner,
-  Text,
+  TextContainer,
 } from '@shopify/polaris';
-import { CheckCircleIcon, AlertTriangleIcon } from '@shopify/polaris-icons';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
 
 export default function Settings() {
   const [settings, setSettings] = useState({
     openaiKey: '',
-    anthropicKey: '',
-    googleKey: '',
+    claudeKey: '',
+    geminiKey: '',
     language: 'fr',
     tone: 'professional',
   });
-  
-  const [validationStatus, setValidationStatus] = useState({
-    openai: { status: 'idle', message: '' },
-    anthropic: { status: 'idle', message: '' },
-    google: { status: 'idle', message: '' },
-  });
-
   const [loading, setLoading] = useState(false);
 
   const handleSettingChange = useCallback((field) => (value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
-    const keyName = field.replace('Key', '');
-    if (validationStatus[keyName]) {
-      setValidationStatus(prev => ({ ...prev, [keyName]: { status: 'idle', message: '' } }));
-    }
-  }, [validationStatus]);
-
-  const handleValidateKey = useCallback(async (provider) => {
-    const apiKey = settings[`${provider}Key`];
-    if (!apiKey) {
-      toast.error(`Veuillez entrer une clé API pour ${provider}.`);
-      return;
-    }
-
-    setValidationStatus(prev => ({ ...prev, [provider]: { status: 'loading', message: '' } }));
-    
-    try {
-      await api.post('/ai/validate-key', { provider, apiKey });
-      setValidationStatus(prev => ({ ...prev, [provider]: { status: 'valid', message: '' } }));
-      toast.success(`La clé API pour ${provider} est valide !`);
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'La clé API est invalide ou le service est indisponible.';
-      setValidationStatus(prev => ({ ...prev, [provider]: { status: 'invalid', message: errorMessage } }));
-      toast.error(`Erreur de validation pour ${provider}: ${errorMessage}`);
-    }
-  }, [settings]);
+  }, []);
 
   const handleSave = () => {
     setLoading(true);
+    // Simuler un appel API
     setTimeout(() => {
       console.log('Paramètres sauvegardés:', settings);
       toast.success('Paramètres sauvegardés avec succès !');
       setLoading(false);
     }, 1000);
   };
-  
-  const renderValidationIcon = (keyName) => {
-    const status = validationStatus[keyName]?.status;
-    if (status === 'loading') {
-      return <Spinner size="small" />;
-    }
-    if (status === 'valid') {
-      return <Icon source={CheckCircleIcon} tone="success" />;
-    }
-    if (status === 'invalid') {
-      return <Icon source={AlertTriangleIcon} tone="critical" />;
-    }
-    return null;
-  }
 
   return (
     <Page
@@ -101,7 +52,7 @@ export default function Settings() {
             <p>
               Vous devez fournir au moins une clé API pour que les
               fonctionnalités d'optimisation fonctionnent. Vos clés sont
-              stockées de manière sécurisée et ne sont jamais partagées.
+              stockées de manière sécurisée.
             </p>
           </Banner>
         </Layout.Section>
@@ -109,53 +60,30 @@ export default function Settings() {
         <Layout.Section>
           <Card sectioned title="Clés API des fournisseurs IA">
             <FormLayout>
-              <InlineStack wrap={false} gap="400" blockAlign="end">
-                <div style={{ flexGrow: 1 }}>
-                  <TextField
-                    label="Clé API OpenAI"
-                    value={settings.openaiKey}
-                    onChange={handleSettingChange('openaiKey')}
-                    type="password"
-                    autoComplete="new-password"
-                    helpText="Utilisée pour les modèles GPT-4, GPT-3.5, etc."
-                    error={validationStatus.openai.message}
-                    connectedRight={renderValidationIcon('openai')}
-                  />
-                </div>
-                <Button onClick={() => handleValidateKey('openai')} loading={validationStatus.openai.status === 'loading'}>Vérifier</Button>
-              </InlineStack>
-
-              <InlineStack wrap={false} gap="400" blockAlign="end">
-                <div style={{ flexGrow: 1 }}>
-                  <TextField
-                    label="Clé API Anthropic"
-                    value={settings.anthropicKey}
-                    onChange={handleSettingChange('anthropicKey')}
-                    type="password"
-                    autoComplete="new-password"
-                    helpText="Utilisée pour les modèles Claude 3 (Opus, Sonnet, Haiku)."
-                    error={validationStatus.anthropic.message}
-                    connectedRight={renderValidationIcon('anthropic')}
-                  />
-                </div>
-                <Button onClick={() => handleValidateKey('anthropic')} loading={validationStatus.anthropic.status === 'loading'}>Vérifier</Button>
-              </InlineStack>
-
-              <InlineStack wrap={false} gap="400" blockAlign="end">
-                <div style={{ flexGrow: 1 }}>
-                  <TextField
-                    label="Clé API Google"
-                    value={settings.googleKey}
-                    onChange={handleSettingChange('googleKey')}
-                    type="password"
-                    autoComplete="new-password"
-                    helpText="Utilisée pour les modèles Gemini Pro."
-                    error={validationStatus.google.message}
-                    connectedRight={renderValidationIcon('google')}
-                  />
-                </div>
-                <Button onClick={() => handleValidateKey('google')} loading={validationStatus.google.status === 'loading'}>Vérifier</Button>
-              </InlineStack>
+              <TextField
+                label="Clé API OpenAI"
+                value={settings.openaiKey}
+                onChange={handleSettingChange('openaiKey')}
+                type="password"
+                autoComplete="new-password"
+                helpText="Utilisée pour les modèles GPT-4, GPT-3.5, etc."
+              />
+              <TextField
+                label="Clé API Anthropic"
+                value={settings.claudeKey}
+                onChange={handleSettingChange('claudeKey')}
+                type="password"
+                autoComplete="new-password"
+                helpText="Utilisée pour les modèles Claude 3 (Opus, Sonnet, Haiku)."
+              />
+              <TextField
+                label="Clé API Google"
+                value={settings.geminiKey}
+                onChange={handleSettingChange('geminiKey')}
+                type="password"
+                autoComplete="new-password"
+                helpText="Utilisée pour les modèles Gemini Pro."
+              />
             </FormLayout>
           </Card>
         </Layout.Section>
@@ -191,6 +119,12 @@ export default function Settings() {
               />
             </FormLayout>
           </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+           <TextContainer>
+             <p>N'oubliez pas de sauvegarder vos changements.</p>
+           </TextContainer>
         </Layout.Section>
 
       </Layout>

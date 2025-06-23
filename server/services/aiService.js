@@ -191,46 +191,17 @@ Réponds au format JSON:
 
   // Vérifier la validité d'une clé API
   async validateApiKey(provider, apiKey) {
-    if (!apiKey) {
-      throw new Error('La clé API est requise.');
-    }
-    
-    let tempProviderInstance;
-
     try {
-      switch (provider) {
-        case AIProviderTypes.OPENAI:
-          tempProviderInstance = new OpenAI({ apiKey });
-          await tempProviderInstance.models.list();
-          break;
-
-        case AIProviderTypes.ANTHROPIC:
-          tempProviderInstance = new Anthropic({ apiKey });
-          await tempProviderInstance.messages.create({
-            model: AI_CONFIG.ANTHROPIC.model,
-            max_tokens: 1,
-            messages: [{ role: 'user', content: 'ping' }],
-          });
-          break;
-
-        case AIProviderTypes.GOOGLE:
-          tempProviderInstance = new GoogleGenerativeAI(apiKey);
-          const model = tempProviderInstance.getGenerativeModel({ model: AI_CONFIG.GOOGLE.model });
-          await model.countTokens("test");
-          break;
-
-        default:
-          throw new Error(`Fournisseur IA non supporté pour la validation: ${provider}`);
-      }
-
-      logger.info(`✅ Clé API pour ${provider} validée avec succès.`);
+      this.initializeProvider(provider, apiKey);
+      
+      // Test simple pour valider la clé
+      const testPrompt = 'Réponds simplement "OK"';
+      await this.generateContent(provider, testPrompt);
+      
       return true;
     } catch (error) {
-      logger.error(`❌ Clé API invalide pour ${provider}: ${error.message}`);
-      if (error.status === 401 || (error.error && error.error.type === 'authentication_error')) {
-        throw new Error('Clé API non autorisée. Veuillez vérifier votre clé.');
-      }
-      throw new Error('La clé API est incorrecte ou le service est inaccessible.');
+      logger.error(`Clé API invalide pour ${provider}:`, error);
+      return false;
     }
   }
 }
