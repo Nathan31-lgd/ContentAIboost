@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Optimisation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de l'API d'Optimisation</h1>
+    
+    <div class="test-section">
+        <h3>Test de l'endpoint de santé</h3>
+        <button onclick="testHealth()">Tester /api/health</button>
+        <div id="health-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test de l'optimisation en masse</h3>
+        <button onclick="testBulkOptimization()">Tester /api/optimizations/bulk</button>
+        <div id="bulk-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test de récupération des collections</h3>
+        <button onclick="testCollections()">Tester /api/collections</button>
+        <div id="collections-result" class="result"></div>
+    </div>
+
+    <script>
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = 'Test en cours...';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                resultDiv.innerHTML = `<strong>Succès:</strong> ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>Erreur:</strong> ${error.message}`;
+            }
+        }
+        
+        async function testBulkOptimization() {
+            const resultDiv = document.getElementById('bulk-result');
+            resultDiv.innerHTML = 'Test en cours...';
+            
+            try {
+                const response = await fetch('/api/optimizations/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'collections',
+                        itemIds: ['123', '456'],
+                        ai: 'chatgpt',
+                        options: {
+                            titles: true,
+                            descriptions: true,
+                            keywords: true,
+                            metadata: true,
+                            seo: true
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<strong>Succès:</strong> ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>Erreur:</strong> ${error.message}`;
+            }
+        }
+        
+        async function testCollections() {
+            const resultDiv = document.getElementById('collections-result');
+            resultDiv.innerHTML = 'Test en cours...';
+            
+            try {
+                const response = await fetch('/api/collections');
+                const data = await response.json();
+                resultDiv.innerHTML = `<strong>Succès:</strong> ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>Erreur:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

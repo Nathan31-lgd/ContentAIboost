@@ -175,6 +175,7 @@ export const api = {
       return fetchAPI(`/collections${queryString ? `?${queryString}` : ''}`);
     },
     getById: (id) => fetchAPI(`/collections/${id}`),
+    sync: () => fetchAPI('/collections/sync', { method: 'POST' }),
   },
 
   // Optimisations
@@ -189,10 +190,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ type, id, suggestions }),
       }),
-    bulkOptimize: (items) =>
+    bulkOptimize: (optimizationData) =>
       fetchAPI(`/optimizations/bulk`, {
         method: 'POST',
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(optimizationData),
       }),
   },
 
