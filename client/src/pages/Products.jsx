@@ -69,6 +69,25 @@ export default function Products() {
           duration: 4000,
         });
         setProducts([]);
+      } 
+      // Si l'erreur indique un token expiré
+      else if (error.message?.includes('Token d\'accès expiré') || error.message?.includes('requiresReinstall')) {
+        toast.error('Session expirée. Redirection vers l\'installation...', {
+          icon: '⚠️',
+          duration: 5000,
+        });
+        
+        // Rediriger vers l'installation après un délai
+        setTimeout(() => {
+          const shop = new URLSearchParams(window.location.search).get('shop');
+          if (shop) {
+            window.location.href = `/api/auth/install?shop=${shop}`;
+          } else {
+            window.location.href = '/auth/install';
+          }
+        }, 2000);
+        
+        setProducts([]);
       } else {
         toast.error('Impossible de charger les produits');
       }
