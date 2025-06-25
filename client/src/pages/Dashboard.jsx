@@ -9,8 +9,6 @@ import {
   Banner,
   ProgressBar,
   Text,
-  Stack,
-  InlineStack,
   Thumbnail,
   EmptyState,
   Spinner,
@@ -164,10 +162,10 @@ export default function Dashboard() {
     return (
       <Page title="Tableau de bord">
         <Card sectioned>
-          <Stack vertical alignment="center">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <Spinner size="large" />
             <Text>Chargement des données...</Text>
-          </Stack>
+          </div>
         </Card>
       </Page>
     );
@@ -204,22 +202,22 @@ export default function Dashboard() {
             {/* Onglet Produits */}
             {selectedTab === 0 && (
               <Card.Section>
-                <Stack vertical gap="400">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                   {/* Score d'optimisation global */}
                   <Card sectioned>
-                    <Stack vertical gap="400">
-                      <InlineStack align="space-between">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text variant="headingMd">Score d'optimisation global</Text>
                         <Badge tone={getScoreColor(productsStats.score)} size="large">
                           {productsStats.score}/100
                         </Badge>
-                      </InlineStack>
+                      </div>
                       <ProgressBar 
                         progress={productsStats.score} 
                         tone={getScoreColor(productsStats.score)}
                         size="medium"
                       />
-                      <InlineStack gap="400">
+                      <div style={{ display: 'flex', gap: 16 }}>
                         <Badge tone="success">
                           {productsStats.optimized} optimisés
                         </Badge>
@@ -229,64 +227,64 @@ export default function Dashboard() {
                         <Badge tone="critical">
                           {productsStats.notOptimized} non optimisés
                         </Badge>
-                      </InlineStack>
-                    </Stack>
+                      </div>
+                    </div>
                   </Card>
 
                   {/* Statistiques */}
-                  <InlineStack gap="400">
+                  <div style={{ display: 'flex', gap: 16 }}>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold">
                           {productsStats.total}
                         </Text>
                         <Text tone="subdued">Produits au total</Text>
-                      </Stack>
+                      </div>
                     </Card>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold" tone="critical">
                           {productsStats.notOptimized}
                         </Text>
                         <Text tone="subdued">À optimiser</Text>
-                      </Stack>
+                      </div>
                     </Card>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold" tone="success">
                           {Math.round((productsStats.optimized / productsStats.total) * 100) || 0}%
                         </Text>
                         <Text tone="subdued">Taux d'optimisation</Text>
-                      </Stack>
+                      </div>
                     </Card>
-                  </InlineStack>
+                  </div>
 
                   {/* Derniers produits ajoutés */}
                   <Card title="Derniers produits ajoutés" sectioned>
                     {recentProducts.length > 0 ? (
-                      <Stack vertical gap="300">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         {recentProducts.map((product) => (
-                          <InlineStack key={product.id} align="space-between" blockAlign="center">
-                            <InlineStack gap="300" blockAlign="center">
+                          <div key={product.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <Thumbnail
                                 source={product.image || 'https://via.placeholder.com/50'}
                                 alt={product.title}
                                 size="small"
                               />
-                              <Stack vertical gap="100">
-                                <InlineStack gap="200">
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <Text variant="bodyMd" fontWeight="semibold">
                                     {product.title}
                                   </Text>
                                   {isNew(product.created_at) && (
                                     <Badge tone="success">Nouveau</Badge>
                                   )}
-                                </InlineStack>
+                                </div>
                                 <Text variant="bodySm" tone="subdued">
                                   Score SEO: {product.seo_score || 0}/100
                                 </Text>
-                              </Stack>
-                            </InlineStack>
+                              </div>
+                            </div>
                             <Button
                               plain
                               icon={ArrowRightIcon}
@@ -294,9 +292,9 @@ export default function Dashboard() {
                             >
                               Optimiser
                             </Button>
-                          </InlineStack>
+                          </div>
                         ))}
-                      </Stack>
+                      </div>
                     ) : (
                       <EmptyState
                         heading="Aucun produit"
@@ -317,29 +315,29 @@ export default function Dashboard() {
                       Voir tous les produits
                     </Button>
                   </Box>
-                </Stack>
+                </div>
               </Card.Section>
             )}
 
             {/* Onglet Collections */}
             {selectedTab === 1 && (
               <Card.Section>
-                <Stack vertical gap="400">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                   {/* Score d'optimisation global */}
                   <Card sectioned>
-                    <Stack vertical gap="400">
-                      <InlineStack align="space-between">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text variant="headingMd">Score d'optimisation global</Text>
                         <Badge tone={getScoreColor(collectionsStats.score)} size="large">
                           {collectionsStats.score}/100
                         </Badge>
-                      </InlineStack>
+                      </div>
                       <ProgressBar 
                         progress={collectionsStats.score} 
                         tone={getScoreColor(collectionsStats.score)}
                         size="medium"
                       />
-                      <InlineStack gap="400">
+                      <div style={{ display: 'flex', gap: 16 }}>
                         <Badge tone="success">
                           {collectionsStats.optimized} optimisées
                         </Badge>
@@ -349,45 +347,45 @@ export default function Dashboard() {
                         <Badge tone="critical">
                           {collectionsStats.notOptimized} non optimisées
                         </Badge>
-                      </InlineStack>
-                    </Stack>
+                      </div>
+                    </div>
                   </Card>
 
                   {/* Statistiques */}
-                  <InlineStack gap="400">
+                  <div style={{ display: 'flex', gap: 16 }}>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold">
                           {collectionsStats.total}
                         </Text>
                         <Text tone="subdued">Collections au total</Text>
-                      </Stack>
+                      </div>
                     </Card>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold" tone="critical">
                           {collectionsStats.notOptimized}
                         </Text>
                         <Text tone="subdued">À optimiser</Text>
-                      </Stack>
+                      </div>
                     </Card>
                     <Card sectioned>
-                      <Stack vertical gap="200">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <Text variant="headingLg" fontWeight="bold" tone="success">
                           {Math.round((collectionsStats.optimized / collectionsStats.total) * 100) || 0}%
                         </Text>
                         <Text tone="subdued">Taux d'optimisation</Text>
-                      </Stack>
+                      </div>
                     </Card>
-                  </InlineStack>
+                  </div>
 
                   {/* Dernières collections ajoutées */}
                   <Card title="Dernières collections ajoutées" sectioned>
                     {recentCollections.length > 0 ? (
-                      <Stack vertical gap="300">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         {recentCollections.map((collection) => (
-                          <InlineStack key={collection.id} align="space-between" blockAlign="center">
-                            <InlineStack gap="300" blockAlign="center">
+                          <div key={collection.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <Thumbnail
                                 source={collection.image || ''}
                                 alt={collection.title}
@@ -395,20 +393,20 @@ export default function Dashboard() {
                               >
                                 <Icon source={CollectionIcon} />
                               </Thumbnail>
-                              <Stack vertical gap="100">
-                                <InlineStack gap="200">
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <Text variant="bodyMd" fontWeight="semibold">
                                     {collection.title}
                                   </Text>
                                   {isNew(collection.created_at) && (
                                     <Badge tone="success">Nouveau</Badge>
                                   )}
-                                </InlineStack>
+                                </div>
                                 <Text variant="bodySm" tone="subdued">
                                   Score SEO: {collection.seo_score || 0}/100 • {collection.products_count || 0} produits
                                 </Text>
-                              </Stack>
-                            </InlineStack>
+                              </div>
+                            </div>
                             <Button
                               plain
                               icon={ArrowRightIcon}
@@ -416,9 +414,9 @@ export default function Dashboard() {
                             >
                               Optimiser
                             </Button>
-                          </InlineStack>
+                          </div>
                         ))}
-                      </Stack>
+                      </div>
                     ) : (
                       <EmptyState
                         heading="Aucune collection"
@@ -439,7 +437,7 @@ export default function Dashboard() {
                       Voir toutes les collections
                     </Button>
                   </Box>
-                </Stack>
+                </div>
               </Card.Section>
             )}
           </Card>
