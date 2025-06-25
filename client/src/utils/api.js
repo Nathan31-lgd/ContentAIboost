@@ -166,6 +166,10 @@ export const api = {
     },
     getById: (id) => fetchAPI(`/products/${id}`),
     sync: () => fetchAPI('/products/sync', { method: 'POST' }),
+    update: (id, data) => fetchAPI(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   },
 
   // Collections
@@ -176,6 +180,10 @@ export const api = {
     },
     getById: (id) => fetchAPI(`/collections/${id}`),
     sync: () => fetchAPI('/collections/sync', { method: 'POST' }),
+    update: (id, data) => fetchAPI(`/collections/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
   },
 
   // Optimisations
@@ -197,13 +205,37 @@ export const api = {
       }),
   },
 
+  // IA
+  ai: {
+    generateSuggestion: (data) => 
+      fetchAPI(`/ai/generate-suggestion`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  },
+
   // Utilisateurs
   users: {
+    register: (userData) =>
+      fetchAPI('/users/register', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      }),
+    login: (credentials) =>
+      fetchAPI('/users/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      }),
     getProfile: () => fetchAPI('/users/profile'),
-    updateProfile: (data) => 
-      fetchAPI('/users/profile', {
+    updateApiKeys: (keys) =>
+      fetchAPI('/users/api-keys', {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: JSON.stringify(keys),
+      }),
+    updateSubscription: (subscriptionData) =>
+      fetchAPI('/users/subscription', {
+        method: 'PUT',
+        body: JSON.stringify(subscriptionData),
       }),
   },
 };
@@ -379,18 +411,6 @@ class ApiClient {
   // Méthodes spécialisées pour les utilisateurs
   async getUserProfile() {
     return this.get('/users/profile');
-  }
-
-  async updateApiKeys(data) {
-    return this.put('/users/api-keys', data);
-  }
-
-  async deleteApiKey(provider) {
-    return this.delete(`/users/api-keys/${provider}`);
-  }
-
-  async updateSubscription(data) {
-    return this.put('/users/subscription', data);
   }
 
   async getUserStats() {

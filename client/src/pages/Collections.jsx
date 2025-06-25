@@ -143,9 +143,12 @@ export default function Collections() {
   const rows = collections.map((collection) => {
     const seoInfo = getSEOBadge(collection.seo_score || 0);
     
+    // On rend la ligne cliquable (image/titre)
+    const handleRowClick = () => handleOptimizeCollection(collection.id);
+
     return [
-      // Image et titre
-      <InlineStack gap="400" blockAlign="center">
+      // Image et titre (cliquable)
+      <InlineStack gap="400" blockAlign="center" style={{ cursor: 'pointer' }} onClick={handleRowClick}>
         <Thumbnail
           source={collection.image || ''}
           alt={collection.title}
@@ -187,13 +190,6 @@ export default function Collections() {
           disabled={collection.seo_score >= 80}
         >
           {collection.seo_score >= 80 ? 'Réoptimiser' : 'Optimiser'}
-        </Button>
-        <Button
-          size="slim"
-          plain
-          onClick={() => navigate(`/collections/${collection.id}`)}
-        >
-          Détails
         </Button>
       </ButtonGroup>,
     ];

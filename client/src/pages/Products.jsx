@@ -161,9 +161,12 @@ export default function Products() {
   const rows = products.map((product) => {
     const seoInfo = getSEOBadge(product.seo_score || 0);
     
+    // On rend la ligne cliquable (image/titre)
+    const handleRowClick = () => handleOptimizeProduct(product.id);
+
     return [
-      // Image et titre
-      <InlineStack gap="400" blockAlign="center">
+      // Image et titre (cliquable)
+      <InlineStack gap="400" blockAlign="center" style={{ cursor: 'pointer' }} onClick={handleRowClick}>
         <Thumbnail
           source={product.image || 'https://via.placeholder.com/50'}
           alt={product.title}
@@ -196,13 +199,6 @@ export default function Products() {
           disabled={product.seo_score >= 80}
         >
           {product.seo_score >= 80 ? 'Réoptimiser' : 'Optimiser'}
-        </Button>
-        <Button
-          size="slim"
-          plain
-          onClick={() => navigate(`/products/${product.id}`)}
-        >
-          Détails
         </Button>
       </ButtonGroup>,
     ];
